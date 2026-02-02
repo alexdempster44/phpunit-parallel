@@ -2,5 +2,5 @@
 <runner>
     <workers>4</workers>
     <config-build-dir>.phpunit-parallel</config-build-dir>
-    <run-command>vendor/bin/phpunit</run-command>
+    <run-command>docker run --rm -v "$(pwd)":/app -w /app php:8.3-cli php vendor/bin/phpunit</run-command>
 </runner>

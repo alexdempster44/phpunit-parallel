@@ -1,0 +1,10 @@
+#!/bin/bash
+
+first_arg="$1"
+shift
+
+if [[ "$first_arg" == *"ide-phpunit.php"* ]]; then
+    exec phpunit-parallel --teamcity "$@"
+else
+    exec php "$first_arg" "$@"
+fi

@@ -11,7 +11,7 @@ class TestCase extends BaseTestCase
 {
     protected function setUp(): void
     {
-        if (rand(0, 10) === 0) {
+        if (rand(0, 32) === 0) {
             throw new Exception();
         }
 

@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 
 	"github.com/alexdempster44/phpunit-parallel/internal/config"
+	"github.com/alexdempster44/phpunit-parallel/internal/output"
 	"github.com/alexdempster44/phpunit-parallel/internal/runner"
 	"github.com/spf13/cobra"
 )
@@ -20,8 +21,9 @@ var (
 )
 
 var rootCmd = &cobra.Command{
-	Use:   "phpunit-parallel",
-	Short: "Run PHPUnit tests in parallel",
+	Use:          "phpunit-parallel",
+	Short:        "Run PHPUnit tests in parallel",
+	SilenceUsage: true,
 	PreRunE: func(cmd *cobra.Command, args []string) error {
 		configToLoad := runnerConfigFile
 		if configToLoad == "" {
@@ -61,7 +63,14 @@ var rootCmd = &cobra.Command{
 			baseDir, _ = os.Getwd()
 		}
 
-		r := runner.New(cfg, runnerConfig, baseDir)
+		var out output.Output
+		if teamcity {
+			out = output.NewTeamCityOutput()
+		} else {
+			out = output.NewTerminalOutput()
+		}
+
+		r := runner.New(cfg, runnerConfig, baseDir, out)
 		return r.Run()
 	},
 }

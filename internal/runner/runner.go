@@ -5,22 +5,26 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/alexdempster44/phpunit-parallel/internal/config"
 	"github.com/alexdempster44/phpunit-parallel/internal/distributor"
+	"github.com/alexdempster44/phpunit-parallel/internal/output"
 )
 
 type Runner struct {
 	PHPUnitConfig *config.PHPUnit
 	RunnerConfig  *config.Runner
 	BaseDir       string
+	Output        output.Output
 }
 
-func New(phpunitConfig *config.PHPUnit, runnerConfig *config.Runner, baseDir string) *Runner {
+func New(phpunitConfig *config.PHPUnit, runnerConfig *config.Runner, baseDir string, out output.Output) *Runner {
 	return &Runner{
 		PHPUnitConfig: phpunitConfig,
 		RunnerConfig:  runnerConfig,
 		BaseDir:       baseDir,
+		Output:        out,
 	}
 }
 
@@ -33,11 +37,23 @@ func (r *Runner) Run() error {
 	dist := distributor.RoundRobin(tests, r.RunnerConfig.Workers)
 	workers := r.createWorkers(dist)
 
+	r.Output.Start(len(tests), len(workers))
+
+	var wg sync.WaitGroup
+
 	for _, worker := range workers {
-		if err := worker.Run(); err != nil {
-			return fmt.Errorf("worker %d failed: %w", worker.ID, err)
-		}
+		wg.Add(1)
+		go func(w *Worker) {
+			defer wg.Done()
+
+			r.Output.WorkerStart(w.ID, w.TestCount())
+			err := w.Run()
+			r.Output.WorkerComplete(w.ID, err)
+		}(worker)
 	}
+
+	wg.Wait()
+	r.Output.Finish()
 
 	return nil
 }
@@ -53,6 +69,9 @@ func (r *Runner) createWorkers(dist distributor.Distribution) []*Worker {
 			bucket.Tests,
 			r.RunnerConfig.RunCommand,
 			r.BaseDir,
+			r.RunnerConfig.ConfigBuildDir,
+			r.PHPUnitConfig.Bootstrap,
+			r.Output,
 		))
 	}
 	return workers

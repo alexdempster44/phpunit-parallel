@@ -10,6 +10,6 @@ build:
 install:
     go install .
 
-# Run the program
-run *ARGS:
-    go run . {{ARGS}}
+# Run the program in testdata directory
+run *ARGS: build
+    cd testdata && ../bin/phpunit-parallel {{ARGS}}

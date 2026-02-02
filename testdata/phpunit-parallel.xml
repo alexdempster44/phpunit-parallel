@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<runner>
+    <workers>4</workers>
+    <config-build-dir>.phpunit-parallel</config-build-dir>
+    <run-command>vendor/bin/phpunit</run-command>
+</runner>

@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/alexdempster44/phpunit-parallel/internal/distributor"
@@ -20,10 +21,11 @@ type Worker struct {
 	BaseDir        string
 	ConfigBuildDir string
 	Bootstrap      string
+	RawConfigXML   []byte
 	Output         output.Output
 }
 
-func NewWorker(id int, tests []distributor.TestFile, runCommand, baseDir, configBuildDir, bootstrap string, out output.Output) *Worker {
+func NewWorker(id int, tests []distributor.TestFile, runCommand, baseDir, configBuildDir, bootstrap string, rawConfigXML []byte, out output.Output) *Worker {
 	return &Worker{
 		ID:             id,
 		Tests:          tests,
@@ -31,6 +33,7 @@ func NewWorker(id int, tests []distributor.TestFile, runCommand, baseDir, config
 		BaseDir:        baseDir,
 		ConfigBuildDir: configBuildDir,
 		Bootstrap:      bootstrap,
+		RawConfigXML:   rawConfigXML,
 		Output:         out,
 	}
 }
@@ -94,12 +97,6 @@ func (w *Worker) buildConfig() (string, error) {
 		TestSuites []testSuite `xml:"testsuite"`
 	}
 
-	type phpunit struct {
-		XMLName    xml.Name   `xml:"phpunit"`
-		Bootstrap  string     `xml:"bootstrap,attr,omitempty"`
-		TestSuites testSuites `xml:"testsuites"`
-	}
-
 	suiteMap := make(map[string][]testFile)
 	for _, test := range w.Tests {
 		relPath, _ := filepath.Rel(w.BaseDir, test.Path)
@@ -112,19 +109,22 @@ func (w *Worker) buildConfig() (string, error) {
 		suites = append(suites, testSuite{Name: name, Files: files})
 	}
 
-	bootstrap := w.Bootstrap
-	if bootstrap != "" {
-		bootstrap = filepath.Join("..", bootstrap)
-	}
-
-	cfg := phpunit{
-		Bootstrap:  bootstrap,
-		TestSuites: testSuites{TestSuites: suites},
-	}
-
-	data, err := xml.MarshalIndent(cfg, "", "  ")
+	newTestSuites := testSuites{TestSuites: suites}
+	testSuitesXML, err := xml.MarshalIndent(newTestSuites, "  ", "  ")
 	if err != nil {
-		return "", fmt.Errorf("failed to marshal config: %w", err)
+		return "", fmt.Errorf("failed to marshal testsuites: %w", err)
+	}
+
+	configXML := string(w.RawConfigXML)
+
+	testSuitesRegex := regexp.MustCompile(`(?s)<testsuites[^>]*>.*?</testsuites>`)
+	configXML = testSuitesRegex.ReplaceAllString(configXML, string(testSuitesXML))
+
+	if w.Bootstrap != "" {
+		bootstrapRegex := regexp.MustCompile(`bootstrap="([^"]*)"`)
+		configXML = bootstrapRegex.ReplaceAllStringFunc(configXML, func(match string) string {
+			return fmt.Sprintf(`bootstrap="%s"`, filepath.Join("..", w.Bootstrap))
+		})
 	}
 
 	if err := os.MkdirAll(w.ConfigBuildDir, 0755); err != nil {
@@ -132,7 +132,7 @@ func (w *Worker) buildConfig() (string, error) {
 	}
 
 	configPath := filepath.Join(w.ConfigBuildDir, fmt.Sprintf("phpunit-worker-%d.xml", w.ID))
-	if err := os.WriteFile(configPath, append([]byte(xml.Header), data...), 0644); err != nil {
+	if err := os.WriteFile(configPath, []byte(configXML), 0644); err != nil {
 		return "", fmt.Errorf("failed to write config: %w", err)
 	}
 

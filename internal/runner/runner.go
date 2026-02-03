@@ -71,6 +71,7 @@ func (r *Runner) createWorkers(dist distributor.Distribution) []*Worker {
 			r.BaseDir,
 			r.RunnerConfig.ConfigBuildDir,
 			r.PHPUnitConfig.Bootstrap,
+			r.PHPUnitConfig.RawXML,
 			r.Output,
 		))
 	}

@@ -9,6 +9,7 @@ type PHPUnit struct {
 	XMLName    xml.Name   `xml:"phpunit"`
 	Bootstrap  string     `xml:"bootstrap,attr"`
 	TestSuites TestSuites `xml:"testsuites"`
+	RawXML     []byte     `xml:"-"`
 }
 
 type TestSuites struct {
@@ -32,6 +33,8 @@ func ParsePHPUnit(path string) (*PHPUnit, error) {
 	if err := xml.Unmarshal(data, &config); err != nil {
 		return nil, err
 	}
+
+	config.RawXML = data
 
 	return &config, nil
 }

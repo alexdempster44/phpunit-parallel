@@ -10,6 +10,7 @@ class MiddlewareTest extends TestCase
 {
     public function testMiddlewarePipeline(): void
     {
+        $this->pretest();
         $pipeline = [
             fn($data, $next) => $next($data . 'A'),
             fn($data, $next) => $next($data . 'B'),
@@ -22,6 +23,7 @@ class MiddlewareTest extends TestCase
 
     public function testMiddlewareCanHalt(): void
     {
+        $this->pretest();
         $pipeline = [
             fn($data, $next) => $next($data . 'A'),
             fn($data, $next) => $data . 'STOPPED',
@@ -34,6 +36,7 @@ class MiddlewareTest extends TestCase
 
     public function testBeforeAfterMiddleware(): void
     {
+        $this->pretest();
         $log = [];
 
         $middleware = function ($data, $next) use (&$log) {
@@ -51,6 +54,7 @@ class MiddlewareTest extends TestCase
 
     public function testMiddlewareModifiesRequest(): void
     {
+        $this->pretest();
         $request = ['headers' => []];
 
         $authMiddleware = function ($req, $next) {
@@ -66,6 +70,7 @@ class MiddlewareTest extends TestCase
 
     public function testMiddlewareOrder(): void
     {
+        $this->pretest();
         $order = [];
 
         $pipeline = [
@@ -85,12 +90,14 @@ class MiddlewareTest extends TestCase
 
     public function testEmptyPipeline(): void
     {
+        $this->pretest();
         $result = $this->runPipeline([], 'input');
         $this->assertEquals('input', $result);
     }
 
     public function testMiddlewareWithCondition(): void
     {
+        $this->pretest();
         $isAdmin = true;
 
         $pipeline = [];

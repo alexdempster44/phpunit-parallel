@@ -12,6 +12,7 @@ class RouterTest extends TestCase
 
     public function testRegisterRoute(): void
     {
+        $this->pretest();
         $this->addRoute('GET', '/users', 'UsersController@index');
 
         $this->assertCount(1, $this->routes);
@@ -19,6 +20,7 @@ class RouterTest extends TestCase
 
     public function testMatchRoute(): void
     {
+        $this->pretest();
         $this->addRoute('GET', '/users', 'UsersController@index');
 
         $match = $this->match('GET', '/users');
@@ -27,6 +29,7 @@ class RouterTest extends TestCase
 
     public function testRouteWithParameter(): void
     {
+        $this->pretest();
         $this->addRoute('GET', '/users/{id}', 'UsersController@show');
 
         $match = $this->match('GET', '/users/42');
@@ -35,6 +38,7 @@ class RouterTest extends TestCase
 
     public function testMultipleParameters(): void
     {
+        $this->pretest();
         $this->addRoute('GET', '/posts/{postId}/comments/{commentId}', 'CommentsController@show');
 
         $match = $this->match('GET', '/posts/10/comments/5');
@@ -44,6 +48,7 @@ class RouterTest extends TestCase
 
     public function testMethodMatching(): void
     {
+        $this->pretest();
         $this->addRoute('GET', '/users', 'get_handler');
         $this->addRoute('POST', '/users', 'post_handler');
 
@@ -56,6 +61,7 @@ class RouterTest extends TestCase
 
     public function testNoMatch(): void
     {
+        $this->pretest();
         $this->addRoute('GET', '/users', 'handler');
 
         $match = $this->match('GET', '/posts');
@@ -64,12 +70,14 @@ class RouterTest extends TestCase
 
     public function testOptionalParameter(): void
     {
+        $this->pretest();
         $pattern = '/users/{id?}';
         $this->assertTrue(str_contains($pattern, '?'));
     }
 
     public function testRouteGroups(): void
     {
+        $this->pretest();
         $prefix = '/api/v1';
         $routes = ['/users', '/posts', '/comments'];
 
@@ -80,6 +88,7 @@ class RouterTest extends TestCase
 
     public function testRouteNames(): void
     {
+        $this->pretest();
         $namedRoutes = [
             'users.index' => '/users',
             'users.show' => '/users/{id}',
@@ -90,6 +99,7 @@ class RouterTest extends TestCase
 
     public function testUrlGeneration(): void
     {
+        $this->pretest();
         $pattern = '/users/{id}/posts/{postId}';
         $params = ['id' => 42, 'postId' => 10];
 

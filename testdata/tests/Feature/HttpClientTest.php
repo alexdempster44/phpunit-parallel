@@ -10,6 +10,7 @@ class HttpClientTest extends TestCase
 {
     public function testBuildUrl(): void
     {
+        $this->pretest();
         $base = 'https://api.example.com';
         $path = '/users';
         $url = rtrim($base, '/') . '/' . ltrim($path, '/');
@@ -19,6 +20,7 @@ class HttpClientTest extends TestCase
 
     public function testBuildQueryString(): void
     {
+        $this->pretest();
         $params = ['page' => 1, 'limit' => 10];
         $query = http_build_query($params);
 
@@ -27,6 +29,7 @@ class HttpClientTest extends TestCase
 
     public function testParseUrl(): void
     {
+        $this->pretest();
         $url = 'https://user:pass@example.com:8080/path?query=value#fragment';
         $parts = parse_url($url);
 
@@ -38,6 +41,7 @@ class HttpClientTest extends TestCase
 
     public function testHttpHeaders(): void
     {
+        $this->pretest();
         $headers = [
             'Content-Type' => 'application/json',
             'Authorization' => 'Bearer token123',
@@ -54,6 +58,7 @@ class HttpClientTest extends TestCase
 
     public function testJsonRequestBody(): void
     {
+        $this->pretest();
         $data = ['name' => 'John', 'email' => 'john@example.com'];
         $body = json_encode($data);
 
@@ -62,6 +67,7 @@ class HttpClientTest extends TestCase
 
     public function testFormDataBody(): void
     {
+        $this->pretest();
         $data = ['username' => 'john', 'password' => 'secret'];
         $body = http_build_query($data);
 
@@ -70,6 +76,7 @@ class HttpClientTest extends TestCase
 
     public function testStatusCodes(): void
     {
+        $this->pretest();
         $codes = [
             200 => 'OK',
             201 => 'Created',
@@ -85,6 +92,7 @@ class HttpClientTest extends TestCase
 
     public function testIsSuccessStatus(): void
     {
+        $this->pretest();
         $this->assertTrue($this->isSuccess(200));
         $this->assertTrue($this->isSuccess(201));
         $this->assertFalse($this->isSuccess(400));
@@ -93,6 +101,7 @@ class HttpClientTest extends TestCase
 
     public function testRetryLogic(): void
     {
+        $this->pretest();
         $maxRetries = 3;
         $attempts = 0;
 
@@ -108,6 +117,7 @@ class HttpClientTest extends TestCase
 
     public function testTimeout(): void
     {
+        $this->pretest();
         $options = [
             'timeout' => 30,
             'connect_timeout' => 10,

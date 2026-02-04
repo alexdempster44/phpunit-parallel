@@ -18,6 +18,7 @@ class DatabaseTest extends TestCase
 
     public function testCanInsertRecord(): void
     {
+        $this->pretest();
         $this->mockDatabase['users'][] = ['id' => 1, 'name' => 'John'];
 
         $this->assertCount(1, $this->mockDatabase['users']);
@@ -25,6 +26,7 @@ class DatabaseTest extends TestCase
 
     public function testCanRetrieveRecord(): void
     {
+        $this->pretest();
         $this->mockDatabase['users'][] = ['id' => 1, 'name' => 'John'];
 
         $record = $this->mockDatabase['users'][0];
@@ -33,6 +35,7 @@ class DatabaseTest extends TestCase
 
     public function testCanUpdateRecord(): void
     {
+        $this->pretest();
         $this->mockDatabase['users'][] = ['id' => 1, 'name' => 'John'];
         $this->mockDatabase['users'][0]['name'] = 'Jane';
 
@@ -41,6 +44,7 @@ class DatabaseTest extends TestCase
 
     public function testCanDeleteRecord(): void
     {
+        $this->pretest();
         $this->mockDatabase['users'][] = ['id' => 1, 'name' => 'John'];
         unset($this->mockDatabase['users'][0]);
 
@@ -49,6 +53,7 @@ class DatabaseTest extends TestCase
 
     public function testCanInsertMultipleRecords(): void
     {
+        $this->pretest();
         $this->mockDatabase['users'][] = ['id' => 1, 'name' => 'John'];
         $this->mockDatabase['users'][] = ['id' => 2, 'name' => 'Jane'];
         $this->mockDatabase['users'][] = ['id' => 3, 'name' => 'Bob'];
@@ -58,6 +63,7 @@ class DatabaseTest extends TestCase
 
     public function testCanFindRecordById(): void
     {
+        $this->pretest();
         $this->mockDatabase['users'][] = ['id' => 1, 'name' => 'John'];
         $this->mockDatabase['users'][] = ['id' => 2, 'name' => 'Jane'];
 
@@ -68,6 +74,7 @@ class DatabaseTest extends TestCase
 
     public function testCanCountRecords(): void
     {
+        $this->pretest();
         $this->mockDatabase['users'] = [];
         $this->assertEquals(0, count($this->mockDatabase['users']));
 
@@ -77,6 +84,7 @@ class DatabaseTest extends TestCase
 
     public function testCanCheckIfRecordExists(): void
     {
+        $this->pretest();
         $this->mockDatabase['users'][] = ['id' => 1, 'name' => 'John'];
 
         $exists = !empty(array_filter($this->mockDatabase['users'], fn($u) => $u['id'] === 1));

@@ -11,6 +11,7 @@ class QueueTest extends TestCase
 {
     public function testEnqueueDequeue(): void
     {
+        $this->pretest();
         $queue = new SplQueue();
         $queue->enqueue('first');
         $queue->enqueue('second');
@@ -21,6 +22,7 @@ class QueueTest extends TestCase
 
     public function testFifoOrder(): void
     {
+        $this->pretest();
         $queue = new SplQueue();
         $queue->enqueue(1);
         $queue->enqueue(2);
@@ -36,6 +38,7 @@ class QueueTest extends TestCase
 
     public function testIsEmpty(): void
     {
+        $this->pretest();
         $queue = new SplQueue();
         $this->assertTrue($queue->isEmpty());
 
@@ -45,6 +48,7 @@ class QueueTest extends TestCase
 
     public function testCount(): void
     {
+        $this->pretest();
         $queue = new SplQueue();
         $this->assertEquals(0, $queue->count());
 
@@ -55,6 +59,7 @@ class QueueTest extends TestCase
 
     public function testPeek(): void
     {
+        $this->pretest();
         $queue = new SplQueue();
         $queue->enqueue('first');
         $queue->enqueue('second');
@@ -65,6 +70,7 @@ class QueueTest extends TestCase
 
     public function testArrayAsQueue(): void
     {
+        $this->pretest();
         $queue = [];
         $queue[] = 'first';
         $queue[] = 'second';
@@ -75,6 +81,7 @@ class QueueTest extends TestCase
 
     public function testPrioritySimulation(): void
     {
+        $this->pretest();
         $queue = [
             ['priority' => 1, 'data' => 'low'],
             ['priority' => 3, 'data' => 'high'],
@@ -88,6 +95,7 @@ class QueueTest extends TestCase
 
     public function testBatchProcessing(): void
     {
+        $this->pretest();
         $queue = range(1, 10);
         $batchSize = 3;
         $batches = array_chunk($queue, $batchSize);
@@ -98,6 +106,7 @@ class QueueTest extends TestCase
 
     public function testJobQueue(): void
     {
+        $this->pretest();
         $jobs = [];
         $jobs[] = ['type' => 'email', 'to' => 'user@example.com'];
         $jobs[] = ['type' => 'sms', 'to' => '+1234567890'];

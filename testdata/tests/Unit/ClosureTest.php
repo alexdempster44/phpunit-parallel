@@ -11,12 +11,14 @@ class ClosureTest extends TestCase
 {
     public function testBasicClosure(): void
     {
+        $this->pretest();
         $add = fn($a, $b) => $a + $b;
         $this->assertEquals(5, $add(2, 3));
     }
 
     public function testClosureWithUse(): void
     {
+        $this->pretest();
         $multiplier = 3;
         $multiply = fn($n) => $n * $multiplier;
 
@@ -25,6 +27,7 @@ class ClosureTest extends TestCase
 
     public function testClosureByReference(): void
     {
+        $this->pretest();
         $count = 0;
         $increment = function () use (&$count) {
             $count++;
@@ -37,6 +40,7 @@ class ClosureTest extends TestCase
 
     public function testClosureCall(): void
     {
+        $this->pretest();
         $closure = function () {
             return $this->value;
         };
@@ -50,12 +54,14 @@ class ClosureTest extends TestCase
 
     public function testClosureFromCallable(): void
     {
+        $this->pretest();
         $closure = Closure::fromCallable('strtoupper');
         $this->assertEquals('HELLO', $closure('hello'));
     }
 
     public function testHigherOrderFunction(): void
     {
+        $this->pretest();
         $numbers = [1, 2, 3, 4, 5];
         $squared = array_map(fn($n) => $n ** 2, $numbers);
 
@@ -64,6 +70,7 @@ class ClosureTest extends TestCase
 
     public function testClosureReturningClosure(): void
     {
+        $this->pretest();
         $makeAdder = fn($x) => fn($y) => $x + $y;
         $add5 = $makeAdder(5);
 
@@ -72,6 +79,7 @@ class ClosureTest extends TestCase
 
     public function testArrayFilterWithClosure(): void
     {
+        $this->pretest();
         $numbers = [1, 2, 3, 4, 5, 6];
         $evens = array_filter($numbers, fn($n) => $n % 2 === 0);
 
@@ -80,6 +88,7 @@ class ClosureTest extends TestCase
 
     public function testArrayReduceWithClosure(): void
     {
+        $this->pretest();
         $numbers = [1, 2, 3, 4];
         $product = array_reduce($numbers, fn($carry, $n) => $carry * $n, 1);
 
@@ -88,6 +97,7 @@ class ClosureTest extends TestCase
 
     public function testUsortWithClosure(): void
     {
+        $this->pretest();
         $items = [['name' => 'b'], ['name' => 'a'], ['name' => 'c']];
         usort($items, fn($a, $b) => $a['name'] <=> $b['name']);
 

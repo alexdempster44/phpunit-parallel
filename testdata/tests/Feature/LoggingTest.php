@@ -12,6 +12,7 @@ class LoggingTest extends TestCase
 
     public function testLogMessage(): void
     {
+        $this->pretest();
         $this->log('info', 'Test message');
 
         $this->assertCount(1, $this->logs);
@@ -20,6 +21,7 @@ class LoggingTest extends TestCase
 
     public function testLogLevel(): void
     {
+        $this->pretest();
         $this->log('error', 'Error occurred');
 
         $this->assertEquals('error', $this->logs[0]['level']);
@@ -27,6 +29,7 @@ class LoggingTest extends TestCase
 
     public function testLogContext(): void
     {
+        $this->pretest();
         $this->log('info', 'User logged in', ['user_id' => 42]);
 
         $this->assertEquals(42, $this->logs[0]['context']['user_id']);
@@ -34,6 +37,7 @@ class LoggingTest extends TestCase
 
     public function testLogTimestamp(): void
     {
+        $this->pretest();
         $this->log('debug', 'Debug message');
 
         $this->assertArrayHasKey('timestamp', $this->logs[0]);
@@ -41,6 +45,7 @@ class LoggingTest extends TestCase
 
     public function testLogLevels(): void
     {
+        $this->pretest();
         $levels = ['emergency', 'alert', 'critical', 'error', 'warning', 'notice', 'info', 'debug'];
 
         foreach ($levels as $level) {
@@ -52,6 +57,7 @@ class LoggingTest extends TestCase
 
     public function testFilterByLevel(): void
     {
+        $this->pretest();
         $this->log('info', 'Info 1');
         $this->log('error', 'Error 1');
         $this->log('info', 'Info 2');
@@ -62,6 +68,7 @@ class LoggingTest extends TestCase
 
     public function testLogFormatting(): void
     {
+        $this->pretest();
         $this->log('info', 'User {name} logged in', ['name' => 'John']);
 
         $formatted = $this->formatMessage($this->logs[0]);
@@ -70,6 +77,7 @@ class LoggingTest extends TestCase
 
     public function testLogChannel(): void
     {
+        $this->pretest();
         $this->logs[] = [
             'channel' => 'auth',
             'level' => 'info',
@@ -83,6 +91,7 @@ class LoggingTest extends TestCase
 
     public function testClearLogs(): void
     {
+        $this->pretest();
         $this->log('info', 'Message');
         $this->logs = [];
 
@@ -91,6 +100,7 @@ class LoggingTest extends TestCase
 
     public function testLogCount(): void
     {
+        $this->pretest();
         for ($i = 0; $i < 5; $i++) {
             $this->log('info', "Message $i");
         }

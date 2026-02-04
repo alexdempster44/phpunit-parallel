@@ -11,6 +11,7 @@ class ObjectTest extends TestCase
 {
     public function testStdClass(): void
     {
+        $this->pretest();
         $obj = new stdClass();
         $obj->name = 'John';
         $obj->age = 30;
@@ -21,6 +22,7 @@ class ObjectTest extends TestCase
 
     public function testObjectToArray(): void
     {
+        $this->pretest();
         $obj = new stdClass();
         $obj->a = 1;
         $obj->b = 2;
@@ -31,6 +33,7 @@ class ObjectTest extends TestCase
 
     public function testArrayToObject(): void
     {
+        $this->pretest();
         $array = ['name' => 'John', 'age' => 30];
         $obj = (object) $array;
 
@@ -39,6 +42,7 @@ class ObjectTest extends TestCase
 
     public function testPropertyExists(): void
     {
+        $this->pretest();
         $obj = new stdClass();
         $obj->name = 'John';
 
@@ -48,6 +52,7 @@ class ObjectTest extends TestCase
 
     public function testGetObjectVars(): void
     {
+        $this->pretest();
         $obj = new stdClass();
         $obj->a = 1;
         $obj->b = 2;
@@ -58,18 +63,21 @@ class ObjectTest extends TestCase
 
     public function testGetClass(): void
     {
+        $this->pretest();
         $obj = new stdClass();
         $this->assertEquals('stdClass', get_class($obj));
     }
 
     public function testIsObject(): void
     {
+        $this->pretest();
         $this->assertTrue(is_object(new stdClass()));
         $this->assertFalse(is_object(['array']));
     }
 
     public function testClone(): void
     {
+        $this->pretest();
         $obj1 = new stdClass();
         $obj1->value = 'original';
 
@@ -82,6 +90,7 @@ class ObjectTest extends TestCase
 
     public function testInstanceOf(): void
     {
+        $this->pretest();
         $obj = new \ArrayIterator([]);
 
         $this->assertInstanceOf(\ArrayIterator::class, $obj);
@@ -90,6 +99,7 @@ class ObjectTest extends TestCase
 
     public function testAnonymousClass(): void
     {
+        $this->pretest();
         $obj = new class {
             public function greet(): string
             {

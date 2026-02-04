@@ -18,6 +18,7 @@ class PaginationTest extends TestCase
 
     public function testBasicPagination(): void
     {
+        $this->pretest();
         $page = 1;
         $perPage = 10;
 
@@ -29,6 +30,7 @@ class PaginationTest extends TestCase
 
     public function testSecondPage(): void
     {
+        $this->pretest();
         $paginated = $this->paginate($this->items, 2, 10);
 
         $this->assertEquals(11, $paginated['data'][0]);
@@ -37,6 +39,7 @@ class PaginationTest extends TestCase
 
     public function testLastPage(): void
     {
+        $this->pretest();
         $paginated = $this->paginate($this->items, 10, 10);
 
         $this->assertEquals(91, $paginated['data'][0]);
@@ -45,6 +48,7 @@ class PaginationTest extends TestCase
 
     public function testTotalPages(): void
     {
+        $this->pretest();
         $paginated = $this->paginate($this->items, 1, 10);
 
         $this->assertEquals(10, $paginated['last_page']);
@@ -52,6 +56,7 @@ class PaginationTest extends TestCase
 
     public function testTotalCount(): void
     {
+        $this->pretest();
         $paginated = $this->paginate($this->items, 1, 10);
 
         $this->assertEquals(100, $paginated['total']);
@@ -59,6 +64,7 @@ class PaginationTest extends TestCase
 
     public function testHasMorePages(): void
     {
+        $this->pretest();
         $first = $this->paginate($this->items, 1, 10);
         $last = $this->paginate($this->items, 10, 10);
 
@@ -68,6 +74,7 @@ class PaginationTest extends TestCase
 
     public function testEmptyPage(): void
     {
+        $this->pretest();
         $paginated = $this->paginate($this->items, 100, 10);
 
         $this->assertEmpty($paginated['data']);
@@ -75,6 +82,7 @@ class PaginationTest extends TestCase
 
     public function testCustomPerPage(): void
     {
+        $this->pretest();
         $paginated = $this->paginate($this->items, 1, 25);
 
         $this->assertCount(25, $paginated['data']);
@@ -83,6 +91,7 @@ class PaginationTest extends TestCase
 
     public function testFromTo(): void
     {
+        $this->pretest();
         $paginated = $this->paginate($this->items, 2, 15);
 
         $this->assertEquals(16, $paginated['from']);
@@ -91,6 +100,7 @@ class PaginationTest extends TestCase
 
     public function testPartialLastPage(): void
     {
+        $this->pretest();
         $items = range(1, 25);
         $paginated = $this->paginate($items, 3, 10);
 

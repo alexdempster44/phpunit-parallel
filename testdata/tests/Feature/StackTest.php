@@ -11,6 +11,7 @@ class StackTest extends TestCase
 {
     public function testPushPop(): void
     {
+        $this->pretest();
         $stack = new SplStack();
         $stack->push('first');
         $stack->push('second');
@@ -21,6 +22,7 @@ class StackTest extends TestCase
 
     public function testLifoOrder(): void
     {
+        $this->pretest();
         $stack = new SplStack();
         $stack->push(1);
         $stack->push(2);
@@ -36,6 +38,7 @@ class StackTest extends TestCase
 
     public function testIsEmpty(): void
     {
+        $this->pretest();
         $stack = new SplStack();
         $this->assertTrue($stack->isEmpty());
 
@@ -45,6 +48,7 @@ class StackTest extends TestCase
 
     public function testCount(): void
     {
+        $this->pretest();
         $stack = new SplStack();
         $this->assertEquals(0, $stack->count());
 
@@ -55,6 +59,7 @@ class StackTest extends TestCase
 
     public function testTop(): void
     {
+        $this->pretest();
         $stack = new SplStack();
         $stack->push('first');
         $stack->push('second');
@@ -65,6 +70,7 @@ class StackTest extends TestCase
 
     public function testArrayAsStack(): void
     {
+        $this->pretest();
         $stack = [];
         $stack[] = 'first';
         $stack[] = 'second';
@@ -75,6 +81,7 @@ class StackTest extends TestCase
 
     public function testUndoStack(): void
     {
+        $this->pretest();
         $undoStack = [];
         $undoStack[] = 'action1';
         $undoStack[] = 'action2';
@@ -86,6 +93,7 @@ class StackTest extends TestCase
 
     public function testBracketMatching(): void
     {
+        $this->pretest();
         $str = '((()))';
         $stack = [];
 
@@ -102,6 +110,7 @@ class StackTest extends TestCase
 
     public function testReverseWithStack(): void
     {
+        $this->pretest();
         $input = [1, 2, 3, 4, 5];
         $stack = [];
 

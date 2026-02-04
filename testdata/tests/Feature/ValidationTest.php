@@ -11,6 +11,7 @@ class ValidationTest extends TestCase
 {
     public function testEmailValidation(): void
     {
+        $this->pretest();
         $validEmail = 'user@example.com';
         $invalidEmail = 'not-an-email';
 
@@ -20,6 +21,7 @@ class ValidationTest extends TestCase
 
     public function testRequiredFieldValidation(): void
     {
+        $this->pretest();
         $data = ['name' => 'John', 'email' => ''];
         $required = ['name', 'email'];
         $errors = [];
@@ -36,6 +38,7 @@ class ValidationTest extends TestCase
 
     public function testNumericValidation(): void
     {
+        $this->pretest();
         $this->assertTrue(is_numeric('123'));
         $this->assertTrue(is_numeric('12.34'));
         $this->assertFalse(is_numeric('abc'));
@@ -43,6 +46,7 @@ class ValidationTest extends TestCase
 
     public function testUrlValidation(): void
     {
+        $this->pretest();
         $validUrl = 'https://example.com';
         $invalidUrl = 'not-a-url';
 
@@ -52,6 +56,7 @@ class ValidationTest extends TestCase
 
     public function testIpAddressValidation(): void
     {
+        $this->pretest();
         $this->assertTrue(filter_var('192.168.1.1', FILTER_VALIDATE_IP) !== false);
         $this->assertTrue(filter_var('::1', FILTER_VALIDATE_IP) !== false);
         $this->assertFalse(filter_var('999.999.999.999', FILTER_VALIDATE_IP) !== false);
@@ -59,6 +64,7 @@ class ValidationTest extends TestCase
 
     public function testIntegerValidation(): void
     {
+        $this->pretest();
         $this->assertTrue(filter_var('42', FILTER_VALIDATE_INT) !== false);
         $this->assertFalse(filter_var('42.5', FILTER_VALIDATE_INT) !== false);
         $this->assertFalse(filter_var('abc', FILTER_VALIDATE_INT) !== false);
@@ -66,6 +72,7 @@ class ValidationTest extends TestCase
 
     public function testBooleanValidation(): void
     {
+        $this->pretest();
         $this->assertTrue(filter_var('true', FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) === true);
         $this->assertTrue(filter_var('1', FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) === true);
         $this->assertTrue(filter_var('false', FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) === false);
@@ -74,6 +81,7 @@ class ValidationTest extends TestCase
 
     public function testMinLengthValidation(): void
     {
+        $this->pretest();
         $password = 'abc';
         $minLength = 8;
 
@@ -83,6 +91,7 @@ class ValidationTest extends TestCase
 
     public function testMaxLengthValidation(): void
     {
+        $this->pretest();
         $username = 'verylongusernamethatexceedslimit';
         $maxLength = 20;
 
@@ -92,6 +101,7 @@ class ValidationTest extends TestCase
 
     public function testRegexValidation(): void
     {
+        $this->pretest();
         $pattern = '/^[a-z0-9_]+$/';
 
         $this->assertTrue(preg_match($pattern, 'valid_username_123') === 1);
@@ -100,6 +110,7 @@ class ValidationTest extends TestCase
 
     public function testDateValidation(): void
     {
+        $this->pretest();
         $validDate = '2024-01-15';
         $invalidDate = '2024-13-45';
 

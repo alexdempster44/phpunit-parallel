@@ -13,6 +13,7 @@ class EventTest extends TestCase
 
     public function testRegisterListener(): void
     {
+        $this->pretest();
         $this->listeners['user.created'] = [];
         $this->listeners['user.created'][] = fn($data) => $data;
 
@@ -21,6 +22,7 @@ class EventTest extends TestCase
 
     public function testDispatchEvent(): void
     {
+        $this->pretest();
         $this->listeners['test.event'][] = function ($data) {
             $this->dispatched[] = $data;
         };
@@ -34,6 +36,7 @@ class EventTest extends TestCase
 
     public function testMultipleListeners(): void
     {
+        $this->pretest();
         $results = [];
 
         $this->listeners['multi'][] = function () use (&$results) { $results[] = 'first'; };
@@ -48,6 +51,7 @@ class EventTest extends TestCase
 
     public function testRemoveListener(): void
     {
+        $this->pretest();
         $callback = fn() => 'test';
         $this->listeners['event'][] = $callback;
 
@@ -61,6 +65,7 @@ class EventTest extends TestCase
 
     public function testEventPropagation(): void
     {
+        $this->pretest();
         $stopped = false;
         $executed = [];
 
@@ -83,6 +88,7 @@ class EventTest extends TestCase
 
     public function testEventPayload(): void
     {
+        $this->pretest();
         $received = null;
 
         $this->listeners['payload'][] = function ($data) use (&$received) {
@@ -99,6 +105,7 @@ class EventTest extends TestCase
 
     public function testWildcardEvents(): void
     {
+        $this->pretest();
         $events = ['user.created', 'user.updated', 'user.deleted'];
         $userEvents = array_filter($events, fn($e) => str_starts_with($e, 'user.'));
 
@@ -107,6 +114,7 @@ class EventTest extends TestCase
 
     public function testEventQueue(): void
     {
+        $this->pretest();
         $queue = [];
         $queue[] = ['event' => 'a', 'data' => 1];
         $queue[] = ['event' => 'b', 'data' => 2];
@@ -117,6 +125,7 @@ class EventTest extends TestCase
 
     public function testOnceListener(): void
     {
+        $this->pretest();
         $count = 0;
         $once = true;
 

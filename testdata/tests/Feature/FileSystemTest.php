@@ -10,6 +10,7 @@ class FileSystemTest extends TestCase
 {
     public function testPathInfo(): void
     {
+        $this->pretest();
         $path = '/var/www/html/index.php';
         $info = pathinfo($path);
 
@@ -21,18 +22,21 @@ class FileSystemTest extends TestCase
 
     public function testBasename(): void
     {
+        $this->pretest();
         $this->assertEquals('file.txt', basename('/path/to/file.txt'));
         $this->assertEquals('file', basename('/path/to/file.txt', '.txt'));
     }
 
     public function testDirname(): void
     {
+        $this->pretest();
         $this->assertEquals('/path/to', dirname('/path/to/file.txt'));
         $this->assertEquals('/path', dirname('/path/to/file.txt', 2));
     }
 
     public function testFileExtension(): void
     {
+        $this->pretest();
         $filename = 'document.pdf';
         $extension = pathinfo($filename, PATHINFO_EXTENSION);
 
@@ -41,6 +45,7 @@ class FileSystemTest extends TestCase
 
     public function testRealpath(): void
     {
+        $this->pretest();
         $path = __DIR__ . '/../TestCase.php';
         $real = realpath($path);
 
@@ -50,6 +55,7 @@ class FileSystemTest extends TestCase
 
     public function testGlobPattern(): void
     {
+        $this->pretest();
         $pattern = __DIR__ . '/*.php';
         $files = glob($pattern);
 
@@ -58,12 +64,14 @@ class FileSystemTest extends TestCase
 
     public function testTempDirectory(): void
     {
+        $this->pretest();
         $tempDir = sys_get_temp_dir();
         $this->assertDirectoryExists($tempDir);
     }
 
     public function testFileSizeUnits(): void
     {
+        $this->pretest();
         $bytes = 1024 * 1024;
         $mb = $bytes / (1024 * 1024);
 
@@ -72,6 +80,7 @@ class FileSystemTest extends TestCase
 
     public function testMimeTypeDetection(): void
     {
+        $this->pretest();
         $extensions = [
             'jpg' => 'image/jpeg',
             'png' => 'image/png',
@@ -85,6 +94,7 @@ class FileSystemTest extends TestCase
 
     public function testPathCombination(): void
     {
+        $this->pretest();
         $base = '/var/www';
         $file = 'index.php';
         $combined = rtrim($base, '/') . '/' . ltrim($file, '/');

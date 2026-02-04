@@ -10,6 +10,7 @@ class SerializationTest extends TestCase
 {
     public function testSerializeArray(): void
     {
+        $this->pretest();
         $data = ['name' => 'John', 'age' => 30];
         $serialized = serialize($data);
         $unserialized = unserialize($serialized);
@@ -19,6 +20,7 @@ class SerializationTest extends TestCase
 
     public function testSerializeObject(): void
     {
+        $this->pretest();
         $obj = new \stdClass();
         $obj->value = 42;
 
@@ -30,6 +32,7 @@ class SerializationTest extends TestCase
 
     public function testJsonSerialize(): void
     {
+        $this->pretest();
         $data = ['items' => [1, 2, 3]];
         $json = json_encode($data);
         $decoded = json_decode($json, true);
@@ -39,6 +42,7 @@ class SerializationTest extends TestCase
 
     public function testBase64Encode(): void
     {
+        $this->pretest();
         $data = 'Hello, World!';
         $encoded = base64_encode($data);
         $decoded = base64_decode($encoded);
@@ -48,6 +52,7 @@ class SerializationTest extends TestCase
 
     public function testUrlEncode(): void
     {
+        $this->pretest();
         $data = 'hello world&foo=bar';
         $encoded = urlencode($data);
         $decoded = urldecode($encoded);
@@ -58,6 +63,7 @@ class SerializationTest extends TestCase
 
     public function testRawUrlEncode(): void
     {
+        $this->pretest();
         $data = 'hello world';
         $encoded = rawurlencode($data);
 
@@ -66,6 +72,7 @@ class SerializationTest extends TestCase
 
     public function testHttpBuildQuery(): void
     {
+        $this->pretest();
         $params = ['name' => 'John', 'age' => 30];
         $query = http_build_query($params);
 
@@ -74,6 +81,7 @@ class SerializationTest extends TestCase
 
     public function testParseStr(): void
     {
+        $this->pretest();
         $query = 'name=John&age=30';
         parse_str($query, $result);
 
@@ -83,6 +91,7 @@ class SerializationTest extends TestCase
 
     public function testPackUnpack(): void
     {
+        $this->pretest();
         $packed = pack('N', 12345);
         $unpacked = unpack('N', $packed);
 
@@ -91,6 +100,7 @@ class SerializationTest extends TestCase
 
     public function testIgbinaryAlternative(): void
     {
+        $this->pretest();
         $data = ['key' => 'value'];
         $serialized = serialize($data);
 

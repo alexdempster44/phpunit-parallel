@@ -13,36 +13,42 @@ class ErrorHandlingTest extends TestCase
 {
     public function testBasicException(): void
     {
+        $this->pretest();
         $this->expectException(Exception::class);
         throw new Exception('Test exception');
     }
 
     public function testExceptionMessage(): void
     {
+        $this->pretest();
         $this->expectExceptionMessage('Custom message');
         throw new Exception('Custom message');
     }
 
     public function testExceptionCode(): void
     {
+        $this->pretest();
         $this->expectExceptionCode(42);
         throw new Exception('Error', 42);
     }
 
     public function testInvalidArgumentException(): void
     {
+        $this->pretest();
         $this->expectException(InvalidArgumentException::class);
         throw new InvalidArgumentException('Invalid argument');
     }
 
     public function testRuntimeException(): void
     {
+        $this->pretest();
         $this->expectException(RuntimeException::class);
         throw new RuntimeException('Runtime error');
     }
 
     public function testTryCatch(): void
     {
+        $this->pretest();
         $caught = false;
 
         try {
@@ -56,6 +62,7 @@ class ErrorHandlingTest extends TestCase
 
     public function testFinally(): void
     {
+        $this->pretest();
         $executed = false;
 
         try {
@@ -69,6 +76,7 @@ class ErrorHandlingTest extends TestCase
 
     public function testGetExceptionInfo(): void
     {
+        $this->pretest();
         $exception = new Exception('Test', 100);
 
         $this->assertEquals('Test', $exception->getMessage());
@@ -79,6 +87,7 @@ class ErrorHandlingTest extends TestCase
 
     public function testPreviousException(): void
     {
+        $this->pretest();
         $previous = new Exception('Previous');
         $current = new Exception('Current', 0, $previous);
 
@@ -87,6 +96,7 @@ class ErrorHandlingTest extends TestCase
 
     public function testExceptionChaining(): void
     {
+        $this->pretest();
         try {
             try {
                 throw new Exception('Inner');

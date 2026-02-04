@@ -43,7 +43,7 @@ func (w *Worker) Run() error {
 	if err != nil {
 		return fmt.Errorf("failed to build config: %w", err)
 	}
-	defer os.Remove(configPath)
+	defer func() { _ = os.Remove(configPath) }()
 
 	args := []string{"--configuration", configPath, "--teamcity"}
 	var cmd *exec.Cmd

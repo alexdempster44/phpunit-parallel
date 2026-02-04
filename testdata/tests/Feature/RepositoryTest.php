@@ -20,6 +20,7 @@ class RepositoryTest extends TestCase
 
     public function testCreate(): void
     {
+        $this->pretest();
         $entity = $this->create(['name' => 'John']);
 
         $this->assertEquals(1, $entity['id']);
@@ -28,6 +29,7 @@ class RepositoryTest extends TestCase
 
     public function testFind(): void
     {
+        $this->pretest();
         $this->create(['name' => 'John']);
         $this->create(['name' => 'Jane']);
 
@@ -37,6 +39,7 @@ class RepositoryTest extends TestCase
 
     public function testFindOrFail(): void
     {
+        $this->pretest();
         $this->create(['name' => 'John']);
 
         $this->expectException(\RuntimeException::class);
@@ -45,6 +48,7 @@ class RepositoryTest extends TestCase
 
     public function testAll(): void
     {
+        $this->pretest();
         $this->create(['name' => 'A']);
         $this->create(['name' => 'B']);
         $this->create(['name' => 'C']);
@@ -54,6 +58,7 @@ class RepositoryTest extends TestCase
 
     public function testUpdate(): void
     {
+        $this->pretest();
         $entity = $this->create(['name' => 'John']);
         $this->update($entity['id'], ['name' => 'Jane']);
 
@@ -63,6 +68,7 @@ class RepositoryTest extends TestCase
 
     public function testDelete(): void
     {
+        $this->pretest();
         $entity = $this->create(['name' => 'John']);
         $this->delete($entity['id']);
 
@@ -71,6 +77,7 @@ class RepositoryTest extends TestCase
 
     public function testWhere(): void
     {
+        $this->pretest();
         $this->create(['name' => 'John', 'active' => true]);
         $this->create(['name' => 'Jane', 'active' => false]);
         $this->create(['name' => 'Bob', 'active' => true]);
@@ -81,6 +88,7 @@ class RepositoryTest extends TestCase
 
     public function testFirstWhere(): void
     {
+        $this->pretest();
         $this->create(['name' => 'John', 'role' => 'admin']);
         $this->create(['name' => 'Jane', 'role' => 'user']);
 
@@ -90,6 +98,7 @@ class RepositoryTest extends TestCase
 
     public function testCount(): void
     {
+        $this->pretest();
         $this->create(['name' => 'A']);
         $this->create(['name' => 'B']);
 

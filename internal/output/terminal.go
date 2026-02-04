@@ -11,13 +11,13 @@ import (
 )
 
 const (
-	colorReset   = "\033[0m"
-	colorRed     = "\033[31m"
-	colorGreen   = "\033[32m"
+	colorReset  = "\033[0m"
+	colorRed    = "\033[31m"
+	colorGreen  = "\033[32m"
 	colorYellow = "\033[33m"
 	colorCyan   = "\033[36m"
-	colorDim     = "\033[2m"
-	colorBold    = "\033[1m"
+	colorDim    = "\033[2m"
+	colorBold   = "\033[1m"
 )
 
 var spinnerFrames = []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"}
@@ -102,7 +102,7 @@ func (t *TerminalOutput) startKeyboardListener() {
 					t.render()
 					t.mu.Unlock()
 				}
-				if buf[0] == 3 { // Ctrl+C
+				if buf[0] == 3 {
 					t.restoreTerminal()
 					os.Exit(130)
 				}
@@ -113,7 +113,7 @@ func (t *TerminalOutput) startKeyboardListener() {
 
 func (t *TerminalOutput) restoreTerminal() {
 	if t.oldTermState != nil {
-		term.Restore(int(os.Stdin.Fd()), t.oldTermState)
+		_ = term.Restore(int(os.Stdin.Fd()), t.oldTermState)
 		t.oldTermState = nil
 	}
 }
@@ -158,7 +158,7 @@ func (t *TerminalOutput) WorkerLine(workerID int, line string) {
 
 	switch {
 	case strings.HasPrefix(line, "##teamcity[testCount "):
-		if count := parseTeamCityCount(line); count != nil {
+		if count := ParseTeamCityCount(line); count != nil {
 			if !w.hasActualTestCount {
 				t.testCount = t.testCount - w.testFileCount + *count
 			} else {
@@ -172,12 +172,12 @@ func (t *TerminalOutput) WorkerLine(workerID int, line string) {
 	case strings.HasPrefix(line, "##teamcity[testFailed "):
 		w.testsFailed++
 		w.testsCompleted++
-		name, message, details := parseTeamCityError(line)
+		name, message, details := ParseTeamCityError(line)
 		w.failedTestNames[name] = true
 		t.errors = append(t.errors, terminalError{testName: name, message: message, details: details})
 
 	case strings.HasPrefix(line, "##teamcity[testFinished "):
-		name := parseTeamCityAttr(line, "name")
+		name := ParseTeamCityAttr(line, "name")
 		if !w.failedTestNames[name] {
 			w.testsCompleted++
 		}

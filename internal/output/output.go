@@ -13,7 +13,7 @@ type Output interface {
 	Finish()
 }
 
-func parseTeamCityAttr(line, attr string) string {
+func ParseTeamCityAttr(line, attr string) string {
 	prefix := attr + "='"
 	start := strings.Index(line, prefix)
 	if start < 0 {
@@ -39,8 +39,8 @@ func parseTeamCityAttr(line, attr string) string {
 	return value
 }
 
-func parseTeamCityCount(line string) *int {
-	countStr := parseTeamCityAttr(line, "count")
+func ParseTeamCityCount(line string) *int {
+	countStr := ParseTeamCityAttr(line, "count")
 	if countStr == "" {
 		return nil
 	}
@@ -51,6 +51,16 @@ func parseTeamCityCount(line string) *int {
 	return &count
 }
 
-func parseTeamCityError(line string) (name, message, details string) {
-	return parseTeamCityAttr(line, "name"), parseTeamCityAttr(line, "message"), parseTeamCityAttr(line, "details")
+func ParseTeamCityError(line string) (name, message, details string) {
+	return ParseTeamCityAttr(line, "name"), ParseTeamCityAttr(line, "message"), ParseTeamCityAttr(line, "details")
+}
+
+func ParseTeamCityTestName(line string) string {
+	locationHint := ParseTeamCityAttr(line, "locationHint")
+	if locationHint != "" {
+		if _, after, found := strings.Cut(locationHint, "::"); found {
+			return after
+		}
+	}
+	return ParseTeamCityAttr(line, "name")
 }

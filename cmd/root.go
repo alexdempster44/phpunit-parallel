@@ -7,6 +7,7 @@ import (
 
 	"github.com/alexdempster44/phpunit-parallel/internal/config"
 	"github.com/alexdempster44/phpunit-parallel/internal/output"
+	"github.com/alexdempster44/phpunit-parallel/internal/output/tui"
 	"github.com/alexdempster44/phpunit-parallel/internal/runner"
 	"github.com/spf13/cobra"
 )
@@ -67,7 +68,7 @@ var rootCmd = &cobra.Command{
 		if teamcity {
 			out = output.NewTeamCityOutput()
 		} else {
-			out = output.NewTerminalOutput()
+			out = tui.New()
 		}
 
 		r := runner.New(cfg, runnerConfig, baseDir, out)

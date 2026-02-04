@@ -9,12 +9,11 @@ use PHPUnit\Framework\TestCase as BaseTestCase;
 
 class TestCase extends BaseTestCase
 {
-    protected function setUp(): void
+    protected function pretest(): void
     {
+        usleep((int) (1_000_000 * 0.25));
         if (rand(0, 32) === 0) {
             throw new Exception();
         }
-
-        usleep((int) (1_000_000 * 0.25));
     }
 }

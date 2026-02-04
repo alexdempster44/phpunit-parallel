@@ -13,12 +13,14 @@ class DateTimeTest extends TestCase
 {
     public function testCreateDateTime(): void
     {
+        $this->pretest();
         $date = new DateTime('2024-01-15');
         $this->assertEquals('2024-01-15', $date->format('Y-m-d'));
     }
 
     public function testDateTimeImmutable(): void
     {
+        $this->pretest();
         $date = new DateTimeImmutable('2024-01-15');
         $newDate = $date->modify('+1 day');
 
@@ -28,6 +30,7 @@ class DateTimeTest extends TestCase
 
     public function testDateDiff(): void
     {
+        $this->pretest();
         $date1 = new DateTime('2024-01-01');
         $date2 = new DateTime('2024-01-10');
         $diff = $date1->diff($date2);
@@ -37,6 +40,7 @@ class DateTimeTest extends TestCase
 
     public function testAddInterval(): void
     {
+        $this->pretest();
         $date = new DateTime('2024-01-15');
         $date->add(new DateInterval('P1M'));
 
@@ -45,6 +49,7 @@ class DateTimeTest extends TestCase
 
     public function testTimestamp(): void
     {
+        $this->pretest();
         $date = new DateTime('2024-01-01 00:00:00', new \DateTimeZone('UTC'));
         $timestamp = $date->getTimestamp();
 
@@ -53,6 +58,7 @@ class DateTimeTest extends TestCase
 
     public function testDateFormat(): void
     {
+        $this->pretest();
         $date = new DateTime('2024-03-15 14:30:00');
 
         $this->assertEquals('March', $date->format('F'));
@@ -62,6 +68,7 @@ class DateTimeTest extends TestCase
 
     public function testIsWeekend(): void
     {
+        $this->pretest();
         $saturday = new DateTime('2024-01-13');
         $monday = new DateTime('2024-01-15');
 
@@ -71,6 +78,7 @@ class DateTimeTest extends TestCase
 
     public function testLeapYear(): void
     {
+        $this->pretest();
         $leapYear = new DateTime('2024-02-29');
         $this->assertEquals('29', $leapYear->format('d'));
     }

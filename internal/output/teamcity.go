@@ -78,7 +78,7 @@ func (t *TeamCityOutput) WorkerLine(workerID int, line string) {
 }
 
 func (t *TeamCityOutput) handleSuiteStarted(w *teamCityWorker, line, cleanLine string) {
-	name := parseTeamCityAttr(line, "name")
+	name := ParseTeamCityAttr(line, "name")
 
 	if strings.HasSuffix(name, ".xml") || t.startedSuites[name] {
 		w.skippedSuites[name] = true
@@ -93,7 +93,7 @@ func (t *TeamCityOutput) handleSuiteStarted(w *teamCityWorker, line, cleanLine s
 }
 
 func (t *TeamCityOutput) handleSuiteFinished(w *teamCityWorker, line, cleanLine string) {
-	name := parseTeamCityAttr(line, "name")
+	name := ParseTeamCityAttr(line, "name")
 
 	if w.skippedSuites[name] {
 		delete(w.skippedSuites, name)

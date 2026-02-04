@@ -29,21 +29,25 @@ class ConfigTest extends TestCase
 
     public function testGetValue(): void
     {
+        $this->pretest();
         $this->assertEquals('TestApp', $this->get('app.name'));
     }
 
     public function testGetNestedValue(): void
     {
+        $this->pretest();
         $this->assertEquals('localhost', $this->get('database.host'));
     }
 
     public function testGetWithDefault(): void
     {
+        $this->pretest();
         $this->assertEquals('default', $this->get('missing.key', 'default'));
     }
 
     public function testGetEntireSection(): void
     {
+        $this->pretest();
         $app = $this->get('app');
 
         $this->assertIsArray($app);
@@ -52,6 +56,7 @@ class ConfigTest extends TestCase
 
     public function testSetValue(): void
     {
+        $this->pretest();
         $this->set('app.version', '1.0.0');
 
         $this->assertEquals('1.0.0', $this->get('app.version'));
@@ -59,12 +64,14 @@ class ConfigTest extends TestCase
 
     public function testHasKey(): void
     {
+        $this->pretest();
         $this->assertTrue($this->has('app.name'));
         $this->assertFalse($this->has('app.missing'));
     }
 
     public function testMergeConfig(): void
     {
+        $this->pretest();
         $override = ['app' => ['debug' => false]];
         $merged = array_replace_recursive($this->config, $override);
 
@@ -74,6 +81,7 @@ class ConfigTest extends TestCase
 
     public function testEnvironmentOverride(): void
     {
+        $this->pretest();
         $env = ['APP_DEBUG' => 'false'];
         $config = $this->config;
 
@@ -86,12 +94,14 @@ class ConfigTest extends TestCase
 
     public function testAllConfig(): void
     {
+        $this->pretest();
         $this->assertArrayHasKey('app', $this->config);
         $this->assertArrayHasKey('database', $this->config);
     }
 
     public function testConfigKeys(): void
     {
+        $this->pretest();
         $keys = array_keys($this->config);
         $this->assertEquals(['app', 'database'], $keys);
     }

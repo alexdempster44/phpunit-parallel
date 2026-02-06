@@ -4,8 +4,5 @@
 composer/.binary/
 
 # PHP/Composer
-testdata/vendor/
-testdata/composer.lock
-testdata/.phpunit.cache/
-testdata/.phpunit.result.cache
-testdata/.phpunit-parallel/
+vendor/
+.phpunit-parallel/

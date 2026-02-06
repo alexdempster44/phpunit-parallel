@@ -16,6 +16,12 @@ A CLI tool to run PHPUnit tests in parallel, with a beautiful terminal UI.
 
 ## Installation
 
+### Using Composer (Recommended)
+
+```bash
+composer require --dev alexdempster44/phpunit-parallel
+```
+
 ### Using Go
 
 ```bash

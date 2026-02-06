@@ -391,11 +391,16 @@ func (m *Model) renderErrorsPanel(height int, panelWidth int) string {
 	}
 
 	maxNameLen := max(panelWidth-4, 10)
+	cursorLine := 0
 
 	for i, e := range m.errors {
 		expandIcon := styles.IconCollaps
 		if e.Expanded {
 			expandIcon = styles.IconExpand
+		}
+
+		if i == m.errorCursor {
+			cursorLine = len(lines) - 2
 		}
 
 		line := fmt.Sprintf("%s %s", expandIcon, styles.TestFailed.Render(truncateName(e.TestName, maxNameLen)))
@@ -426,11 +431,11 @@ func (m *Model) renderErrorsPanel(height int, panelWidth int) string {
 	visibleLines := max(height-2, 1)
 	if len(lines) > visibleLines+2 {
 		start := m.errorOffset
-		if m.errorCursor+2 < start {
-			start = m.errorCursor
+		if cursorLine < start {
+			start = cursorLine
 		}
-		if m.errorCursor >= start+visibleLines {
-			start = m.errorCursor - visibleLines + 1
+		if cursorLine >= start+visibleLines {
+			start = cursorLine - visibleLines + 1
 		}
 		start = max(start, 0)
 		headerLines := lines[:2]

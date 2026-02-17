@@ -38,18 +38,23 @@ func (r *Runner) Run() error {
 		return fmt.Errorf("failed to discover tests: %w", err)
 	}
 
+	dist := distributor.RoundRobin(tests, r.RunnerConfig.Workers)
+	workers := r.createWorkers(dist)
+	workerCount := len(workers)
+	for _, w := range workers {
+		w.WorkerCount = workerCount
+	}
+
 	if r.RunnerConfig.Before != "" {
 		cmd := exec.Command("sh", "-c", r.RunnerConfig.Before)
 		cmd.Dir = r.BaseDir
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
+		cmd.Env = r.env(workerCount)
 		if err := cmd.Run(); err != nil {
 			return fmt.Errorf("before command failed: %w", err)
 		}
 	}
-
-	dist := distributor.RoundRobin(tests, r.RunnerConfig.Workers)
-	workers := r.createWorkers(dist)
 
 	var cleanupOnce sync.Once
 	cleanup := func() {
@@ -108,12 +113,22 @@ func (r *Runner) Run() error {
 		cmd.Dir = r.BaseDir
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
+		cmd.Env = r.env(workerCount)
 		if err := cmd.Run(); err != nil {
 			return fmt.Errorf("after command failed: %w", err)
 		}
 	}
 
 	return nil
+}
+
+func (r *Runner) env(workerCount int) []string {
+	return append(os.Environ(),
+		"PARALLEL=1",
+		fmt.Sprintf("PROJECT=%s", filepath.Base(r.BaseDir)),
+		fmt.Sprintf("RUNNER_PID=%d", os.Getpid()),
+		fmt.Sprintf("WORKER_COUNT=%d", workerCount),
+	)
 }
 
 func (r *Runner) createWorkers(dist distributor.Distribution) []*Worker {

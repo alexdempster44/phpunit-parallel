@@ -29,6 +29,7 @@ type Worker struct {
 	Filter         string
 	Group          string
 	ExcludeGroup   string
+	WorkerCount    int
 }
 
 func NewWorker(id int, tests []distributor.TestFile, beforeWorker, runWorker, afterWorker, baseDir, configBuildDir, bootstrap string, rawConfigXML []byte, out output.Output, filter, group, excludeGroup string) *Worker {
@@ -83,7 +84,7 @@ func (w *Worker) Run() error {
 		cmd = exec.Command(w.RunWorker, args...)
 	}
 	cmd.Dir = w.BaseDir
-	cmd.Env = append(os.Environ(), fmt.Sprintf("WORKER_ID=%d", w.ID))
+	cmd.Env = w.env()
 
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
@@ -109,9 +110,19 @@ func (w *Worker) Run() error {
 func (w *Worker) runHook(command string) error {
 	cmd := exec.Command("sh", "-c", command)
 	cmd.Dir = w.BaseDir
-	cmd.Env = append(os.Environ(), fmt.Sprintf("WORKER_ID=%d", w.ID))
+	cmd.Env = w.env()
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 	return cmd.Run()
+}
+
+func (w *Worker) env() []string {
+	return append(os.Environ(),
+		"PARALLEL=1",
+		fmt.Sprintf("PROJECT=%s", filepath.Base(w.BaseDir)),
+		fmt.Sprintf("RUNNER_PID=%d", os.Getpid()),
+		fmt.Sprintf("WORKER_ID=%d", w.ID),
+		fmt.Sprintf("WORKER_COUNT=%d", w.WorkerCount),
+	)
 }
 
 func (w *Worker) runAfterWorker() {

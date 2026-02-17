@@ -33,7 +33,7 @@ func NewTeamCityOutput() *TeamCityOutput {
 	}
 }
 
-func (t *TeamCityOutput) Start(testCount, workerCount int) {}
+func (t *TeamCityOutput) Start(opts StartOptions) {}
 
 func (t *TeamCityOutput) WorkerStart(workerID, testCount int) {
 	t.mu.Lock()

@@ -104,7 +104,27 @@ func (m *Model) renderHeader() string {
 	}
 
 	title := styles.Title.Render("PHPUnit Parallel")
-	return fmt.Sprintf("%s - %s (%s elapsed)", title, status, elapsed)
+	header := fmt.Sprintf("%s - %s (%s elapsed)", title, status, elapsed)
+
+	if args := m.renderArgs(); args != "" {
+		header += "  " + styles.Dim.Render(args)
+	}
+
+	return header
+}
+
+func (m *Model) renderArgs() string {
+	var parts []string
+	if m.filter != "" {
+		parts = append(parts, "--filter "+m.filter)
+	}
+	if m.group != "" {
+		parts = append(parts, "--group "+m.group)
+	}
+	if m.excludeGroup != "" {
+		parts = append(parts, "--exclude-group "+m.excludeGroup)
+	}
+	return strings.Join(parts, " ")
 }
 
 func (m *Model) renderOverallProgress() string {

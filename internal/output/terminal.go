@@ -63,15 +63,15 @@ func NewTerminalOutput() *TerminalOutput {
 	}
 }
 
-func (t *TerminalOutput) Start(testCount, workerCount int) {
+func (t *TerminalOutput) Start(opts StartOptions) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
-	t.testFileCount = testCount
-	t.testCount = testCount
-	t.workerCount = workerCount
+	t.testFileCount = opts.TestCount
+	t.testCount = opts.TestCount
+	t.workerCount = opts.WorkerCount
 
-	fmt.Printf("Running %d test files across %d workers\n", testCount, workerCount)
+	fmt.Printf("Running %d test files across %d workers\n", opts.TestCount, opts.WorkerCount)
 	fmt.Printf("%sPress 'e' to show errors%s\n\n", colorDim, colorReset)
 
 	t.startKeyboardListener()

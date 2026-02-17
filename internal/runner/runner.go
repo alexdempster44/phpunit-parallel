@@ -74,7 +74,13 @@ func (r *Runner) Run() error {
 	}
 
 	r.Output.SetOnCancel(cleanup)
-	r.Output.Start(len(tests), len(workers))
+	r.Output.Start(output.StartOptions{
+		TestCount:    len(tests),
+		WorkerCount:  len(workers),
+		Filter:       r.RunnerConfig.Filter,
+		Group:        r.RunnerConfig.Group,
+		ExcludeGroup: r.RunnerConfig.ExcludeGroup,
+	})
 
 	var wg sync.WaitGroup
 

@@ -5,8 +5,16 @@ import (
 	"strings"
 )
 
+type StartOptions struct {
+	TestCount    int
+	WorkerCount  int
+	Filter       string
+	Group        string
+	ExcludeGroup string
+}
+
 type Output interface {
-	Start(testCount, workerCount int)
+	Start(opts StartOptions)
 	WorkerStart(workerID, testCount int)
 	WorkerLine(workerID int, line string)
 	WorkerComplete(workerID int, err error)

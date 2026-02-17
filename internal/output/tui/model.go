@@ -1,6 +1,10 @@
 package tui
 
-import "time"
+import (
+	"time"
+
+	"github.com/alexdempster44/phpunit-parallel/internal/output"
+)
 
 type TestStatus int
 
@@ -82,23 +86,29 @@ type Model struct {
 	copyNoticeEnd    time.Time
 	cleanupCompleted int
 	cleanupTotal     int
+	filter           string
+	group            string
+	excludeGroup     string
 }
 
-func NewModel(testCount, workerCount int) *Model {
+func NewModel(opts output.StartOptions) *Model {
 	m := &Model{
-		workers:     make(map[int]*WorkerNode),
-		workerOrder: make([]int, 0, workerCount),
-		errors:      make([]ErrorEntry, 0),
-		phase:       PhaseRunning,
-		activePanel: PanelErrors,
-		testCount:   testCount,
-		workerCount: workerCount,
-		startTime:   time.Now(),
-		width:       80,
-		height:      24,
+		workers:      make(map[int]*WorkerNode),
+		workerOrder:  make([]int, 0, opts.WorkerCount),
+		errors:       make([]ErrorEntry, 0),
+		phase:        PhaseRunning,
+		activePanel:  PanelErrors,
+		testCount:    opts.TestCount,
+		workerCount:  opts.WorkerCount,
+		startTime:    time.Now(),
+		width:        80,
+		height:       24,
+		filter:       opts.Filter,
+		group:        opts.Group,
+		excludeGroup: opts.ExcludeGroup,
 	}
 
-	for i := range workerCount {
+	for i := range opts.WorkerCount {
 		m.workers[i] = &WorkerNode{
 			ID:        i,
 			Tests:     make([]*TestNode, 0),

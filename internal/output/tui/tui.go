@@ -23,8 +23,8 @@ func New() *TUIOutput {
 	return &TUIOutput{}
 }
 
-func (t *TUIOutput) Start(testCount, workerCount int) {
-	t.model = NewModel(testCount, workerCount)
+func (t *TUIOutput) Start(opts output.StartOptions) {
+	t.model = NewModel(opts)
 	t.program = tea.NewProgram(t.model, tea.WithAltScreen())
 
 	go func() {

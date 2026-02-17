@@ -57,6 +57,9 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case CleanupProgressMsg:
+		if m.phase == PhaseRunning {
+			m.endTime = time.Now()
+		}
 		m.phase = PhaseCleanup
 		m.cleanupCompleted = msg.Completed
 		m.cleanupTotal = msg.Total
@@ -68,7 +71,9 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case FinishMsg:
 		m.phase = PhaseComplete
-		m.endTime = time.Now()
+		if m.endTime.IsZero() {
+			m.endTime = time.Now()
+		}
 		m.activePanel = PanelErrors
 		return m, nil
 	}

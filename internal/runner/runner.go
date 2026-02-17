@@ -51,26 +51,30 @@ func (r *Runner) Run() error {
 	dist := distributor.RoundRobin(tests, r.RunnerConfig.Workers)
 	workers := r.createWorkers(dist)
 
+	var cleanupOnce sync.Once
 	cleanup := func() {
-		if r.RunnerConfig.AfterWorker == "" {
-			return
-		}
-		// Ignore signals during cleanup so a second Ctrl+C doesn't kill the process
-		signal.Ignore(syscall.SIGINT, syscall.SIGTERM)
-		total := len(workers)
-		var completed atomic.Int32
-		r.Output.CleanupProgress(0, total)
-		var cwg sync.WaitGroup
-		for _, w := range workers {
-			cwg.Add(1)
-			go func(w *Worker) {
-				defer cwg.Done()
-				w.runAfterWorker()
-				done := int(completed.Add(1))
-				r.Output.CleanupProgress(done, total)
-			}(w)
-		}
-		cwg.Wait()
+		cleanupOnce.Do(func() {
+			if r.RunnerConfig.AfterWorker == "" {
+				return
+			}
+			// Ignore signals during cleanup so a second Ctrl+C doesn't kill the process
+			signal.Ignore(syscall.SIGINT, syscall.SIGTERM)
+			defer signal.Reset(syscall.SIGINT, syscall.SIGTERM)
+			total := len(workers)
+			var completed atomic.Int32
+			r.Output.CleanupProgress(0, total)
+			var cwg sync.WaitGroup
+			for _, w := range workers {
+				cwg.Add(1)
+				go func(w *Worker) {
+					defer cwg.Done()
+					w.runAfterWorker()
+					done := int(completed.Add(1))
+					r.Output.CleanupProgress(done, total)
+				}(w)
+			}
+			cwg.Wait()
+		})
 	}
 
 	r.Output.SetOnCancel(cleanup)

@@ -7,19 +7,19 @@ import (
 )
 
 type Runner struct {
-	XMLName         xml.Name `xml:"runner"`
-	Workers         int      `xml:"workers"`
-	ConfigBuildDir  string   `xml:"config-build-dir"`
-	Before          string   `xml:"before"`
-	BeforeWorker    string   `xml:"before-worker"`
-	RunWorker       string   `xml:"run-worker"`
-	AfterWorker     string   `xml:"after-worker"`
-	After           string   `xml:"after"`
-	Configuration   string   `xml:"configuration"`
-	TestSuffix      string   `xml:"test-suffix"`
-	Filter          string   `xml:"-"` // CLI-only, not in XML config
-	Group           string   `xml:"-"` // CLI-only, not in XML config
-	ExcludeGroup string `xml:"-"` // CLI-only, not in XML config
+	XMLName        xml.Name `xml:"runner"`
+	Workers        int      `xml:"workers"`
+	Configuration  string   `xml:"configuration"`
+	ConfigBuildDir string   `xml:"config-build-dir"`
+	TestSuffix     string   `xml:"test-suffix"`
+	Before         string   `xml:"before"`
+	BeforeWorker   string   `xml:"before-worker"`
+	RunWorker      string   `xml:"run-worker"`
+	AfterWorker    string   `xml:"after-worker"`
+	After          string   `xml:"after"`
+	Filter         string   `xml:"-"` // CLI-only, not in XML config
+	Group          string   `xml:"-"` // CLI-only, not in XML config
+	ExcludeGroup   string   `xml:"-"` // CLI-only, not in XML config
 }
 
 func DefaultRunner() *Runner {

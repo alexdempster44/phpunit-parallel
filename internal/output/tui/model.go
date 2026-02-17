@@ -61,29 +61,28 @@ const (
 )
 
 type Model struct {
-	workers       map[int]*WorkerNode
-	workerOrder   []int
-	errors        []ErrorEntry
-	phase         RunPhase
-	activePanel   Panel
-	runningCursor int
-	errorCursor   int
-	runningOffset int
-	errorOffset   int
-	workersOffset int
-	testCount     int
-	workerCount   int
-	startTime     time.Time
-	endTime       time.Time
-	width         int
-	height        int
-	quitting      bool
-	hasTestCount  bool
-	totalComplete int
-	totalFailed   int
-	totalSkipped  int
+	workers          map[int]*WorkerNode
+	workerOrder      []int
+	errors           []ErrorEntry
+	phase            RunPhase
+	activePanel      Panel
+	runningCursor    int
+	errorCursor      int
+	runningOffset    int
+	errorOffset      int
+	workersOffset    int
+	testCount        int
+	workerCount      int
+	startTime        time.Time
+	endTime          time.Time
+	width            int
+	height           int
+	quitting         bool
+	hasTestCount     bool
+	totalComplete    int
+	totalFailed      int
+	totalSkipped     int
 	copyNotice       string
-	copyNoticeEnd    time.Time
 	cleanupCompleted int
 	cleanupTotal     int
 	filter           string

@@ -56,11 +56,20 @@ var rootCmd = &cobra.Command{
 		if cmd.Flags().Changed("config-build-dir") {
 			runnerConfig.ConfigBuildDir, _ = cmd.Flags().GetString("config-build-dir")
 		}
-		if cmd.Flags().Changed("run-worker") {
-			runnerConfig.RunWorker, _ = cmd.Flags().GetString("run-worker")
+		if cmd.Flags().Changed("before") {
+			runnerConfig.Before, _ = cmd.Flags().GetString("before")
 		}
 		if cmd.Flags().Changed("before-worker") {
 			runnerConfig.BeforeWorker, _ = cmd.Flags().GetString("before-worker")
+		}
+		if cmd.Flags().Changed("run-worker") {
+			runnerConfig.RunWorker, _ = cmd.Flags().GetString("run-worker")
+		}
+		if cmd.Flags().Changed("after-worker") {
+			runnerConfig.AfterWorker, _ = cmd.Flags().GetString("after-worker")
+		}
+		if cmd.Flags().Changed("after") {
+			runnerConfig.After, _ = cmd.Flags().GetString("after")
 		}
 		if cmd.Flags().Changed("filter") {
 			runnerConfig.Filter, _ = cmd.Flags().GetString("filter")
@@ -73,15 +82,6 @@ var rootCmd = &cobra.Command{
 		}
 		if cmd.Flags().Changed("exclude-group") {
 			runnerConfig.ExcludeGroup, _ = cmd.Flags().GetString("exclude-group")
-		}
-		if cmd.Flags().Changed("before") {
-			runnerConfig.Before, _ = cmd.Flags().GetString("before")
-		}
-		if cmd.Flags().Changed("after-worker") {
-			runnerConfig.AfterWorker, _ = cmd.Flags().GetString("after-worker")
-		}
-		if cmd.Flags().Changed("after") {
-			runnerConfig.After, _ = cmd.Flags().GetString("after")
 		}
 
 		return nil

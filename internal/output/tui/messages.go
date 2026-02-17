@@ -45,6 +45,11 @@ type WorkerCompleteMsg struct {
 	Error    error
 }
 
+type CleanupProgressMsg struct {
+	Completed int
+	Total     int
+}
+
 type FinishMsg struct{}
 
 type TickMsg struct{}

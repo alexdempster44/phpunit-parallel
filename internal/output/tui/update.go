@@ -27,7 +27,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case TickMsg:
-		if m.phase == PhaseRunning {
+		if m.phase == PhaseRunning || m.phase == PhaseCleanup {
 			return m, tick()
 		}
 		return m, nil
@@ -55,6 +55,12 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case TestCountMsg:
 		m.handleTestCount(msg)
 		return m, nil
+
+	case CleanupProgressMsg:
+		m.phase = PhaseCleanup
+		m.cleanupCompleted = msg.Completed
+		m.cleanupTotal = msg.Total
+		return m, tick()
 
 	case CopyNoticeExpiredMsg:
 		m.copyNotice = ""

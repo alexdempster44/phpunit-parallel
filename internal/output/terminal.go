@@ -200,6 +200,13 @@ func (t *TerminalOutput) WorkerComplete(workerID int, err error) {
 	t.render()
 }
 
+func (t *TerminalOutput) CleanupProgress(completed, total int) {
+	fmt.Fprintf(os.Stderr, "\rCleaning up workers... %d/%d", completed, total)
+	if completed >= total {
+		fmt.Fprintln(os.Stderr)
+	}
+}
+
 func (t *TerminalOutput) SetOnCancel(fn func()) {
 	t.onCancel = fn
 }

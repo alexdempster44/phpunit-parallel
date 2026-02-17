@@ -93,6 +93,8 @@ func (m *Model) renderHeader() string {
 	switch m.phase {
 	case PhaseRunning:
 		status = styles.TestRunning.Render("Running")
+	case PhaseCleanup:
+		status = styles.TestRunning.Render(fmt.Sprintf("Cleaning up workers... %d/%d", m.cleanupCompleted, m.cleanupTotal))
 	case PhaseComplete, PhaseExploring:
 		if m.totalFailed > 0 {
 			status = styles.TestFailed.Render("Complete - FAILED")

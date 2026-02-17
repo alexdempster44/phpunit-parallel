@@ -43,6 +43,7 @@ type RunPhase int
 
 const (
 	PhaseRunning RunPhase = iota
+	PhaseCleanup
 	PhaseComplete
 	PhaseExploring
 )
@@ -77,8 +78,10 @@ type Model struct {
 	totalComplete int
 	totalFailed   int
 	totalSkipped  int
-	copyNotice    string
-	copyNoticeEnd time.Time
+	copyNotice       string
+	copyNoticeEnd    time.Time
+	cleanupCompleted int
+	cleanupTotal     int
 }
 
 func NewModel(testCount, workerCount int) *Model {

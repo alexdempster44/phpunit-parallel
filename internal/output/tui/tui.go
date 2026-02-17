@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"fmt"
 	"os"
 	"strings"
 	"sync"
@@ -15,6 +16,7 @@ type TUIOutput struct {
 	model    *Model
 	mu       sync.Mutex
 	onCancel func()
+	stopped  bool
 }
 
 func New() *TUIOutput {
@@ -28,6 +30,9 @@ func (t *TUIOutput) Start(testCount, workerCount int) {
 	go func() {
 		_, _ = t.program.Run()
 		if t.model.quitting && t.model.phase != PhaseComplete {
+			t.mu.Lock()
+			t.stopped = true
+			t.mu.Unlock()
 			if t.onCancel != nil {
 				t.onCancel()
 			}
@@ -110,6 +115,26 @@ func (t *TUIOutput) WorkerComplete(workerID int, err error) {
 		t.program.Send(WorkerCompleteMsg{
 			WorkerID: workerID,
 			Error:    err,
+		})
+	}
+}
+
+func (t *TUIOutput) CleanupProgress(completed, total int) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+
+	if t.stopped {
+		fmt.Fprintf(os.Stderr, "\rCleaning up workers... %d/%d", completed, total)
+		if completed >= total {
+			fmt.Fprintln(os.Stderr)
+		}
+		return
+	}
+
+	if t.program != nil {
+		t.program.Send(CleanupProgressMsg{
+			Completed: completed,
+			Total:     total,
 		})
 	}
 }

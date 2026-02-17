@@ -59,19 +59,18 @@ func (r *Runner) Run() error {
 		signal.Ignore(syscall.SIGINT, syscall.SIGTERM)
 		total := len(workers)
 		var completed atomic.Int32
-		fmt.Fprintf(os.Stderr, "\rCleaning up workers... 0/%d", total)
+		r.Output.CleanupProgress(0, total)
 		var cwg sync.WaitGroup
 		for _, w := range workers {
 			cwg.Add(1)
 			go func(w *Worker) {
 				defer cwg.Done()
 				w.runAfterWorker()
-				done := completed.Add(1)
-				fmt.Fprintf(os.Stderr, "\rCleaning up workers... %d/%d", done, total)
+				done := int(completed.Add(1))
+				r.Output.CleanupProgress(done, total)
 			}(w)
 		}
 		cwg.Wait()
-		fmt.Fprintln(os.Stderr)
 	}
 
 	r.Output.SetOnCancel(cleanup)

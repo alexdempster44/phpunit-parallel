@@ -10,6 +10,7 @@ type Output interface {
 	WorkerStart(workerID, testCount int)
 	WorkerLine(workerID int, line string)
 	WorkerComplete(workerID int, err error)
+	CleanupProgress(completed, total int)
 	Finish()
 	SetOnCancel(fn func())
 }

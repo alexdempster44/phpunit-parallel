@@ -143,6 +143,8 @@ func (t *TeamCityOutput) WorkerComplete(workerID int, err error) {
 
 }
 
+func (t *TeamCityOutput) CleanupProgress(completed, total int) {}
+
 func (t *TeamCityOutput) SetOnCancel(fn func()) {}
 
 func (t *TeamCityOutput) Finish() {}

@@ -27,22 +27,14 @@ var rootCmd = &cobra.Command{
 	Short:        "Run PHPUnit tests in parallel",
 	SilenceUsage: true,
 	PreRunE: func(cmd *cobra.Command, args []string) error {
-		cwd, err := os.Getwd()
-		if err != nil {
-			return fmt.Errorf("failed to get working directory: %w", err)
-		}
-
 		configToLoad := runnerConfigFile
 		if configToLoad == "" {
-			if _, err := os.Stat(filepath.Join(cwd, defaultRunnerConfigFile)); err == nil {
+			if _, err := os.Stat(defaultRunnerConfigFile); err == nil {
 				configToLoad = defaultRunnerConfigFile
 			}
 		}
 
 		if configToLoad != "" {
-			if !filepath.IsAbs(configToLoad) {
-				configToLoad = filepath.Join(cwd, configToLoad)
-			}
 			cfg, err := config.ParseRunner(configToLoad)
 			if err != nil {
 				return fmt.Errorf("failed to parse runner config: %w", err)
@@ -92,32 +84,18 @@ var rootCmd = &cobra.Command{
 			runnerConfig.ExcludeGroup, _ = cmd.Flags().GetString("exclude-group")
 		}
 
-		if !filepath.IsAbs(runnerConfig.ConfigBuildDir) {
-			runnerConfig.ConfigBuildDir = filepath.Join(cwd, runnerConfig.ConfigBuildDir)
-		}
-
 		return nil
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
-		cwd, err := os.Getwd()
-		if err != nil {
-			return fmt.Errorf("failed to get working directory: %w", err)
-		}
-
 		if !cmd.Flags().Changed("configuration") {
 			if runnerConfig.Configuration != "" {
 				configFile = runnerConfig.Configuration
-			} else if _, err := os.Stat(filepath.Join(cwd, "phpunit.xml")); err != nil {
-				if _, err := os.Stat(filepath.Join(cwd, "phpunit.xml.dist")); err == nil {
+			} else if _, err := os.Stat("phpunit.xml"); err != nil {
+				if _, err := os.Stat("phpunit.xml.dist"); err == nil {
 					configFile = "phpunit.xml.dist"
 				}
 			}
 		}
-
-		if !filepath.IsAbs(configFile) {
-			configFile = filepath.Join(cwd, configFile)
-		}
-
 
 		cfg, err := config.ParsePHPUnit(configFile)
 		if err != nil {
@@ -125,6 +103,9 @@ var rootCmd = &cobra.Command{
 		}
 
 		baseDir := filepath.Dir(configFile)
+		if baseDir == "." {
+			baseDir, _ = os.Getwd()
+		}
 
 		var out output.Output
 		if teamcity {

@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"syscall"
 
 	"github.com/alexdempster44/phpunit-parallel/internal/distributor"
 	"github.com/alexdempster44/phpunit-parallel/internal/output"
@@ -17,7 +18,9 @@ import (
 type Worker struct {
 	ID             int
 	Tests          []distributor.TestFile
-	RunCommand     string
+	BeforeWorker   string
+	RunWorker      string
+	AfterWorker    string
 	BaseDir        string
 	ConfigBuildDir string
 	Bootstrap      string
@@ -28,11 +31,13 @@ type Worker struct {
 	ExcludeGroup   string
 }
 
-func NewWorker(id int, tests []distributor.TestFile, runCommand, baseDir, configBuildDir, bootstrap string, rawConfigXML []byte, out output.Output, filter, group, excludeGroup string) *Worker {
+func NewWorker(id int, tests []distributor.TestFile, beforeWorker, runWorker, afterWorker, baseDir, configBuildDir, bootstrap string, rawConfigXML []byte, out output.Output, filter, group, excludeGroup string) *Worker {
 	return &Worker{
 		ID:             id,
 		Tests:          tests,
-		RunCommand:     runCommand,
+		BeforeWorker:   beforeWorker,
+		RunWorker:      runWorker,
+		AfterWorker:    afterWorker,
 		BaseDir:        baseDir,
 		ConfigBuildDir: configBuildDir,
 		Bootstrap:      bootstrap,
@@ -45,6 +50,12 @@ func NewWorker(id int, tests []distributor.TestFile, runCommand, baseDir, config
 }
 
 func (w *Worker) Run() error {
+	if w.BeforeWorker != "" {
+		if err := w.runHook(w.BeforeWorker); err != nil {
+			return fmt.Errorf("before-worker failed: %w", err)
+		}
+	}
+
 	configPath, err := w.buildConfig()
 	if err != nil {
 		return fmt.Errorf("failed to build config: %w", err)
@@ -61,14 +72,18 @@ func (w *Worker) Run() error {
 	if w.ExcludeGroup != "" {
 		args = append(args, "--exclude-group", w.ExcludeGroup)
 	}
+	joinedArgs := strings.Join(args, " ")
 	var cmd *exec.Cmd
-	if strings.Contains(w.RunCommand, " ") {
-		shellArgs := w.RunCommand + " " + strings.Join(args, " ")
+	if strings.Contains(w.RunWorker, "{}") {
+		shellArgs := strings.ReplaceAll(w.RunWorker, "{}", joinedArgs)
 		cmd = exec.Command("sh", "-c", shellArgs)
+	} else if strings.Contains(w.RunWorker, " ") {
+		cmd = exec.Command("sh", "-c", w.RunWorker+" "+joinedArgs)
 	} else {
-		cmd = exec.Command(w.RunCommand, args...)
+		cmd = exec.Command(w.RunWorker, args...)
 	}
 	cmd.Dir = w.BaseDir
+	cmd.Env = append(os.Environ(), fmt.Sprintf("WORKER_ID=%d", w.ID))
 
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
@@ -89,6 +104,21 @@ func (w *Worker) Run() error {
 	}
 
 	return nil
+}
+
+func (w *Worker) runHook(command string) error {
+	cmd := exec.Command("sh", "-c", command)
+	cmd.Dir = w.BaseDir
+	cmd.Env = append(os.Environ(), fmt.Sprintf("WORKER_ID=%d", w.ID))
+	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+	return cmd.Run()
+}
+
+func (w *Worker) runAfterWorker() {
+	if w.AfterWorker == "" {
+		return
+	}
+	_ = w.runHook(w.AfterWorker)
 }
 
 func (w *Worker) TestCount() int {

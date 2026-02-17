@@ -391,7 +391,8 @@ func (m *Model) renderErrorsPanel(height int, panelWidth int) string {
 	}
 
 	maxNameLen := max(panelWidth-4, 10)
-	cursorLine := 0
+	cursorStart := 0
+	cursorEnd := 0
 
 	for i, e := range m.errors {
 		expandIcon := styles.IconCollaps
@@ -400,7 +401,7 @@ func (m *Model) renderErrorsPanel(height int, panelWidth int) string {
 		}
 
 		if i == m.errorCursor {
-			cursorLine = len(lines) - 2
+			cursorStart = len(lines) - 2
 		}
 
 		line := fmt.Sprintf("%s %s", expandIcon, styles.TestFailed.Render(truncateName(e.TestName, maxNameLen)))
@@ -426,16 +427,26 @@ func (m *Model) renderErrorsPanel(height int, panelWidth int) string {
 				}
 			}
 		}
+
+		if i == m.errorCursor {
+			cursorEnd = len(lines) - 2
+		}
 	}
 
 	visibleLines := max(height-2, 1)
 	if len(lines) > visibleLines+2 {
 		start := m.errorOffset
-		if cursorLine < start {
-			start = cursorLine
+		// Ensure cursor title line is visible (scroll up if needed)
+		if cursorStart < start {
+			start = cursorStart
 		}
-		if cursorLine >= start+visibleLines {
-			start = cursorLine - visibleLines + 1
+		// Ensure cursor end is visible (scroll down if needed)
+		if cursorEnd >= start+visibleLines {
+			start = cursorEnd - visibleLines + 1
+		}
+		// But always keep the title line visible even if expanded content is tall
+		if cursorStart < start {
+			start = cursorStart
 		}
 		start = max(start, 0)
 		headerLines := lines[:2]
@@ -451,11 +462,15 @@ func (m *Model) renderErrorsPanel(height int, panelWidth int) string {
 }
 
 func (m *Model) renderHelpBar() string {
+	if m.copyNotice != "" {
+		return styles.TestPassed.Render(m.copyNotice)
+	}
+
 	var help string
 	if m.phase == PhaseRunning {
-		help = "[Tab] Panel  [↑↓] Navigate  [Enter] Expand  [Ctrl+C] Quit"
+		help = "[Tab] Panel  [↑↓] Navigate  [Enter] Expand  [c] Copy  [Ctrl+C] Quit"
 	} else {
-		help = "[Tab] Panel  [↑↓] Navigate  [Enter] Expand  [q] Quit"
+		help = "[Tab] Panel  [↑↓] Navigate  [Enter] Expand  [c] Copy  [q] Quit"
 	}
 	return styles.HelpBar.Render(help)
 }

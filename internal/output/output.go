@@ -11,6 +11,7 @@ type Output interface {
 	WorkerLine(workerID int, line string)
 	WorkerComplete(workerID int, err error)
 	Finish()
+	SetOnCancel(fn func())
 }
 
 func ParseTeamCityAttr(line, attr string) string {

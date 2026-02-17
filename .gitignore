@@ -6,3 +6,4 @@ composer/.binary/
 # PHP/Composer
 vendor/
 .phpunit-parallel/
+/.idea

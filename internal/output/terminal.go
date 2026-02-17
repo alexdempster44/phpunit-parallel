@@ -52,6 +52,7 @@ type TerminalOutput struct {
 	done               chan struct{}
 	showErrors         bool
 	oldTermState       *term.State
+	onCancel           func()
 }
 
 func NewTerminalOutput() *TerminalOutput {
@@ -104,6 +105,9 @@ func (t *TerminalOutput) startKeyboardListener() {
 				}
 				if buf[0] == 3 {
 					t.restoreTerminal()
+					if t.onCancel != nil {
+						t.onCancel()
+					}
 					os.Exit(130)
 				}
 			}
@@ -194,6 +198,10 @@ func (t *TerminalOutput) WorkerComplete(workerID int, err error) {
 	}
 
 	t.render()
+}
+
+func (t *TerminalOutput) SetOnCancel(fn func()) {
+	t.onCancel = fn
 }
 
 func (t *TerminalOutput) Finish() {

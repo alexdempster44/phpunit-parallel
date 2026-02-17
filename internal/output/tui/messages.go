@@ -49,6 +49,8 @@ type FinishMsg struct{}
 
 type TickMsg struct{}
 
+type CopyNoticeExpiredMsg struct{}
+
 func tick() tea.Cmd {
 	return tea.Tick(tickInterval, func(_ time.Time) tea.Msg {
 		return TickMsg{}

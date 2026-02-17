@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"os"
 	"strings"
 	"sync"
 
@@ -10,9 +11,10 @@ import (
 )
 
 type TUIOutput struct {
-	program *tea.Program
-	model   *Model
-	mu      sync.Mutex
+	program  *tea.Program
+	model    *Model
+	mu       sync.Mutex
+	onCancel func()
 }
 
 func New() *TUIOutput {
@@ -25,6 +27,12 @@ func (t *TUIOutput) Start(testCount, workerCount int) {
 
 	go func() {
 		_, _ = t.program.Run()
+		if t.model.quitting && t.model.phase != PhaseComplete {
+			if t.onCancel != nil {
+				t.onCancel()
+			}
+			os.Exit(130)
+		}
 	}()
 }
 
@@ -104,6 +112,10 @@ func (t *TUIOutput) WorkerComplete(workerID int, err error) {
 			Error:    err,
 		})
 	}
+}
+
+func (t *TUIOutput) SetOnCancel(fn func()) {
+	t.onCancel = fn
 }
 
 func (t *TUIOutput) Finish() {

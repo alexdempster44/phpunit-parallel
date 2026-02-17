@@ -3,9 +3,13 @@ package runner
 import (
 	"fmt"
 	"os"
+	"os/exec"
+	"os/signal"
 	"path/filepath"
 	"strings"
 	"sync"
+	"sync/atomic"
+	"syscall"
 
 	"github.com/alexdempster44/phpunit-parallel/internal/config"
 	"github.com/alexdempster44/phpunit-parallel/internal/distributor"
@@ -34,9 +38,43 @@ func (r *Runner) Run() error {
 		return fmt.Errorf("failed to discover tests: %w", err)
 	}
 
+	if r.RunnerConfig.Before != "" {
+		cmd := exec.Command("sh", "-c", r.RunnerConfig.Before)
+		cmd.Dir = r.BaseDir
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		if err := cmd.Run(); err != nil {
+			return fmt.Errorf("before command failed: %w", err)
+		}
+	}
+
 	dist := distributor.RoundRobin(tests, r.RunnerConfig.Workers)
 	workers := r.createWorkers(dist)
 
+	cleanup := func() {
+		if r.RunnerConfig.AfterWorker == "" {
+			return
+		}
+		// Ignore signals during cleanup so a second Ctrl+C doesn't kill the process
+		signal.Ignore(syscall.SIGINT, syscall.SIGTERM)
+		total := len(workers)
+		var completed atomic.Int32
+		fmt.Fprintf(os.Stderr, "\rCleaning up workers... 0/%d", total)
+		var cwg sync.WaitGroup
+		for _, w := range workers {
+			cwg.Add(1)
+			go func(w *Worker) {
+				defer cwg.Done()
+				w.runAfterWorker()
+				done := completed.Add(1)
+				fmt.Fprintf(os.Stderr, "\rCleaning up workers... %d/%d", done, total)
+			}(w)
+		}
+		cwg.Wait()
+		fmt.Fprintln(os.Stderr)
+	}
+
+	r.Output.SetOnCancel(cleanup)
 	r.Output.Start(len(tests), len(workers))
 
 	var wg sync.WaitGroup
@@ -53,7 +91,18 @@ func (r *Runner) Run() error {
 	}
 
 	wg.Wait()
+	cleanup()
 	r.Output.Finish()
+
+	if r.RunnerConfig.After != "" {
+		cmd := exec.Command("sh", "-c", r.RunnerConfig.After)
+		cmd.Dir = r.BaseDir
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		if err := cmd.Run(); err != nil {
+			return fmt.Errorf("after command failed: %w", err)
+		}
+	}
 
 	return nil
 }
@@ -67,7 +116,9 @@ func (r *Runner) createWorkers(dist distributor.Distribution) []*Worker {
 		workers = append(workers, NewWorker(
 			bucket.WorkerID,
 			bucket.Tests,
-			r.RunnerConfig.RunCommand,
+			r.RunnerConfig.BeforeWorker,
+			r.RunnerConfig.RunWorker,
+			r.RunnerConfig.AfterWorker,
 			r.BaseDir,
 			r.RunnerConfig.ConfigBuildDir,
 			r.PHPUnitConfig.Bootstrap,

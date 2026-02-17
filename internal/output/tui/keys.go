@@ -10,6 +10,7 @@ type KeyMap struct {
 	Quit     key.Binding
 	PageUp   key.Binding
 	PageDown key.Binding
+	Copy     key.Binding
 }
 
 func DefaultKeyMap() KeyMap {
@@ -41,6 +42,10 @@ func DefaultKeyMap() KeyMap {
 		PageDown: key.NewBinding(
 			key.WithKeys("pgdown"),
 			key.WithHelp("PgDn", "page down"),
+		),
+		Copy: key.NewBinding(
+			key.WithKeys("c"),
+			key.WithHelp("c", "copy error"),
 		),
 	}
 }

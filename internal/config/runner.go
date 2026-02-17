@@ -7,21 +7,26 @@ import (
 )
 
 type Runner struct {
-	XMLName        xml.Name `xml:"runner"`
-	Workers        int      `xml:"workers"`
-	ConfigBuildDir string   `xml:"config-build-dir"`
-	RunCommand     string   `xml:"run-command"`
-	TestSuffix     string   `xml:"test-suffix"`
-	Filter         string   `xml:"-"` // CLI-only, not in XML config
-	Group          string   `xml:"-"` // CLI-only, not in XML config
-	ExcludeGroup   string   `xml:"-"` // CLI-only, not in XML config
+	XMLName         xml.Name `xml:"runner"`
+	Workers         int      `xml:"workers"`
+	ConfigBuildDir  string   `xml:"config-build-dir"`
+	Before          string   `xml:"before"`
+	BeforeWorker    string   `xml:"before-worker"`
+	RunWorker       string   `xml:"run-worker"`
+	AfterWorker     string   `xml:"after-worker"`
+	After           string   `xml:"after"`
+	Configuration   string   `xml:"configuration"`
+	TestSuffix      string   `xml:"test-suffix"`
+	Filter          string   `xml:"-"` // CLI-only, not in XML config
+	Group           string   `xml:"-"` // CLI-only, not in XML config
+	ExcludeGroup string `xml:"-"` // CLI-only, not in XML config
 }
 
 func DefaultRunner() *Runner {
 	return &Runner{
-		Workers:        runtime.NumCPU(),
+		Workers:        max(runtime.NumCPU()-2, 1),
 		ConfigBuildDir: ".phpunit-parallel",
-		RunCommand:     "vendor/bin/phpunit",
+		RunWorker:      "vendor/bin/phpunit",
 		TestSuffix:     "Test.php",
 	}
 }

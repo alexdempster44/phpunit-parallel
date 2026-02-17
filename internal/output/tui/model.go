@@ -77,6 +77,8 @@ type Model struct {
 	totalComplete int
 	totalFailed   int
 	totalSkipped  int
+	copyNotice    string
+	copyNoticeEnd time.Time
 }
 
 func NewModel(testCount, workerCount int) *Model {

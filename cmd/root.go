@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 
 	"github.com/alexdempster44/phpunit-parallel/internal/config"
 	"github.com/alexdempster44/phpunit-parallel/internal/output"
@@ -41,14 +42,25 @@ var rootCmd = &cobra.Command{
 			runnerConfig = cfg
 		}
 
+		if v, ok := os.LookupEnv("PHPUNIT_PARALLEL_WORKERS"); ok {
+			w, err := strconv.Atoi(v)
+			if err != nil {
+				return fmt.Errorf("invalid PHPUNIT_PARALLEL_WORKERS value: %w", err)
+			}
+			runnerConfig.Workers = w
+		}
+
 		if cmd.Flags().Changed("workers") {
 			runnerConfig.Workers, _ = cmd.Flags().GetInt("workers")
 		}
 		if cmd.Flags().Changed("config-build-dir") {
 			runnerConfig.ConfigBuildDir, _ = cmd.Flags().GetString("config-build-dir")
 		}
-		if cmd.Flags().Changed("run-command") {
-			runnerConfig.RunCommand, _ = cmd.Flags().GetString("run-command")
+		if cmd.Flags().Changed("run-worker") {
+			runnerConfig.RunWorker, _ = cmd.Flags().GetString("run-worker")
+		}
+		if cmd.Flags().Changed("before-worker") {
+			runnerConfig.BeforeWorker, _ = cmd.Flags().GetString("before-worker")
 		}
 		if cmd.Flags().Changed("filter") {
 			runnerConfig.Filter, _ = cmd.Flags().GetString("filter")
@@ -62,10 +74,29 @@ var rootCmd = &cobra.Command{
 		if cmd.Flags().Changed("exclude-group") {
 			runnerConfig.ExcludeGroup, _ = cmd.Flags().GetString("exclude-group")
 		}
+		if cmd.Flags().Changed("before") {
+			runnerConfig.Before, _ = cmd.Flags().GetString("before")
+		}
+		if cmd.Flags().Changed("after-worker") {
+			runnerConfig.AfterWorker, _ = cmd.Flags().GetString("after-worker")
+		}
+		if cmd.Flags().Changed("after") {
+			runnerConfig.After, _ = cmd.Flags().GetString("after")
+		}
 
 		return nil
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if !cmd.Flags().Changed("configuration") {
+			if runnerConfig.Configuration != "" {
+				configFile = runnerConfig.Configuration
+			} else if _, err := os.Stat("phpunit.xml"); err != nil {
+				if _, err := os.Stat("phpunit.xml.dist"); err == nil {
+					configFile = "phpunit.xml.dist"
+				}
+			}
+		}
+
 		cfg, err := config.ParsePHPUnit(configFile)
 		if err != nil {
 			return fmt.Errorf("failed to parse config: %w", err)
@@ -95,7 +126,11 @@ func init() {
 	rootCmd.Flags().StringVar(&runnerConfigFile, "runner-config", "", "Runner configuration file")
 	rootCmd.Flags().IntVarP(&runnerConfig.Workers, "workers", "w", runnerConfig.Workers, "Number of parallel workers")
 	rootCmd.Flags().StringVar(&runnerConfig.ConfigBuildDir, "config-build-dir", runnerConfig.ConfigBuildDir, "Directory for generated config files")
-	rootCmd.Flags().StringVar(&runnerConfig.RunCommand, "run-command", runnerConfig.RunCommand, "Command to run PHPUnit")
+	rootCmd.Flags().StringVar(&runnerConfig.Before, "before", "", "Command to run once before all workers start")
+	rootCmd.Flags().StringVar(&runnerConfig.BeforeWorker, "before-worker", "", "Command to run before each worker starts")
+	rootCmd.Flags().StringVar(&runnerConfig.RunWorker, "run-worker", runnerConfig.RunWorker, "Command to run PHPUnit for each worker")
+	rootCmd.Flags().StringVar(&runnerConfig.AfterWorker, "after-worker", "", "Command to run after each worker completes")
+	rootCmd.Flags().StringVar(&runnerConfig.After, "after", "", "Command to run once after all workers complete")
 	rootCmd.Flags().StringVar(&runnerConfig.Filter, "filter", "", "Filter which tests to run (passed to PHPUnit --filter)")
 	rootCmd.Flags().StringVar(&runnerConfig.TestSuffix, "test-suffix", runnerConfig.TestSuffix, "Suffix for test files")
 	rootCmd.Flags().StringVar(&runnerConfig.Group, "group", "", "Only run tests from the specified group(s)")

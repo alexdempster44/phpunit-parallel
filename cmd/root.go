@@ -11,6 +11,7 @@ import (
 	"github.com/alexdempster44/phpunit-parallel/internal/output/tui"
 	"github.com/alexdempster44/phpunit-parallel/internal/runner"
 	"github.com/spf13/cobra"
+	"golang.org/x/term"
 )
 
 const defaultRunnerConfigFile = "phpunit-parallel.xml"
@@ -110,6 +111,8 @@ var rootCmd = &cobra.Command{
 		var out output.Output
 		if teamcity {
 			out = output.NewTeamCityOutput()
+		} else if !term.IsTerminal(int(os.Stdout.Fd())) {
+			out = output.NewTerminalOutput()
 		} else {
 			out = tui.New()
 		}

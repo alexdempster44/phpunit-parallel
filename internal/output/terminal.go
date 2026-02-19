@@ -153,3 +153,9 @@ func (t *TerminalOutput) Finish() {
 func (t *TerminalOutput) SetOnCancel(fn func()) {
 	t.onCancel = fn
 }
+
+func (t *TerminalOutput) AwaitRetry() RetryAction {
+	return ActionQuit
+}
+
+func (t *TerminalOutput) RetryStart(_ RetryStartOptions) {}

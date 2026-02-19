@@ -148,3 +148,7 @@ func (t *TeamCityOutput) CleanupProgress(completed, total int) {}
 func (t *TeamCityOutput) SetOnCancel(fn func()) {}
 
 func (t *TeamCityOutput) Finish() {}
+
+func (t *TeamCityOutput) AwaitRetry() RetryAction { return ActionQuit }
+
+func (t *TeamCityOutput) RetryStart(_ RetryStartOptions) {}

@@ -8,6 +8,8 @@ import (
 	"github.com/atotto/clipboard"
 	"github.com/charmbracelet/bubbles/key"
 	tea "github.com/charmbracelet/bubbletea"
+
+	"github.com/alexdempster44/phpunit-parallel/internal/output"
 )
 
 const tickInterval = 100 * time.Millisecond
@@ -76,6 +78,38 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		m.activePanel = PanelErrors
 		return m, nil
+
+	case RetryStartMsg:
+		m.retryAttempt = msg.Attempt
+		m.phase = PhaseRunning
+		m.workers = make(map[int]*WorkerNode)
+		m.workerOrder = make([]int, 0, msg.WorkerCount)
+		for _, id := range msg.WorkerIDs {
+			m.workers[id] = &WorkerNode{
+				ID:    id,
+				Tests: make([]*TestNode, 0),
+			}
+			m.workerOrder = append(m.workerOrder, id)
+		}
+		m.errors = make([]ErrorEntry, 0)
+		m.totalComplete = 0
+		m.totalFailed = 0
+		m.totalSkipped = 0
+		m.testCount = msg.TestCount
+		m.workerCount = msg.WorkerCount
+		m.hasTestCount = false
+		m.startTime = time.Now()
+		m.endTime = time.Time{}
+		m.errorCursor = 0
+		m.errorOffset = 0
+		m.runningCursor = 0
+		m.runningOffset = 0
+		m.workersOffset = 0
+		m.cleanupCompleted = 0
+		m.cleanupTotal = 0
+		m.activePanel = PanelErrors
+		return m, tick()
+
 	}
 
 	return m, nil
@@ -85,8 +119,27 @@ func (m *Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	keys := DefaultKeyMap()
 
 	switch {
+	case key.Matches(msg, keys.Retry):
+		if m.phase == PhaseComplete && m.totalFailed > 0 && m.actionCh != nil {
+			m.actionCh <- output.ActionRetry
+			m.phase = PhaseRunning
+			return m, tick()
+		}
+		return m, nil
+
+	case key.Matches(msg, keys.RerunAll):
+		if m.phase == PhaseComplete && m.actionCh != nil {
+			m.actionCh <- output.ActionRerunAll
+			m.phase = PhaseRunning
+			return m, tick()
+		}
+		return m, nil
+
 	case key.Matches(msg, keys.Quit):
 		if m.phase == PhaseComplete || m.phase == PhaseExploring || msg.String() == "ctrl+c" {
+			if m.phase == PhaseComplete && m.actionCh != nil {
+				m.actionCh <- output.ActionQuit
+			}
 			m.quitting = true
 			return m, tea.Quit
 		}

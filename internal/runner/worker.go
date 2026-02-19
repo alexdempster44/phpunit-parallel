@@ -2,6 +2,7 @@ package runner
 
 import (
 	"bufio"
+	"bytes"
 	"encoding/xml"
 	"fmt"
 	"os"
@@ -30,6 +31,7 @@ type Worker struct {
 	Group          string
 	ExcludeGroup   string
 	WorkerCount    int
+	IsRetry        bool
 }
 
 func NewWorker(id int, tests []distributor.TestFile, beforeWorker, runWorker, afterWorker, baseDir, configBuildDir, bootstrap string, rawConfigXML []byte, out output.Output, filter, group, excludeGroup string) *Worker {
@@ -51,7 +53,7 @@ func NewWorker(id int, tests []distributor.TestFile, beforeWorker, runWorker, af
 }
 
 func (w *Worker) Run() error {
-	if w.BeforeWorker != "" {
+	if w.BeforeWorker != "" && !w.IsRetry {
 		if err := w.runHook(w.BeforeWorker); err != nil {
 			return fmt.Errorf("before-worker failed: %w", err)
 		}
@@ -73,18 +75,27 @@ func (w *Worker) Run() error {
 	if w.ExcludeGroup != "" {
 		args = append(args, "--exclude-group", w.ExcludeGroup)
 	}
-	joinedArgs := strings.Join(args, " ")
 	var cmd *exec.Cmd
-	if strings.Contains(w.RunWorker, "{}") {
-		shellArgs := strings.ReplaceAll(w.RunWorker, "{}", joinedArgs)
-		cmd = exec.Command("sh", "-c", shellArgs)
-	} else if strings.Contains(w.RunWorker, " ") {
-		cmd = exec.Command("sh", "-c", w.RunWorker+" "+joinedArgs)
+	if strings.Contains(w.RunWorker, "{}") || strings.Contains(w.RunWorker, " ") {
+		quotedArgs := make([]string, len(args))
+		for i, a := range args {
+			quotedArgs[i] = shellQuote(a)
+		}
+		joinedArgs := strings.Join(quotedArgs, " ")
+		if strings.Contains(w.RunWorker, "{}") {
+			shellArgs := strings.ReplaceAll(w.RunWorker, "{}", joinedArgs)
+			cmd = exec.Command("sh", "-c", shellArgs)
+		} else {
+			cmd = exec.Command("sh", "-c", w.RunWorker+" "+joinedArgs)
+		}
 	} else {
 		cmd = exec.Command(w.RunWorker, args...)
 	}
 	cmd.Dir = w.BaseDir
 	cmd.Env = w.env()
+
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
 
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
@@ -101,10 +112,17 @@ func (w *Worker) Run() error {
 	}
 
 	if err := cmd.Wait(); err != nil {
+		if stderr.Len() > 0 {
+			return fmt.Errorf("command failed: %w\nstderr: %s", err, stderr.String())
+		}
 		return fmt.Errorf("command failed: %w", err)
 	}
 
 	return nil
+}
+
+func shellQuote(s string) string {
+	return "'" + strings.ReplaceAll(s, "'", "'\\''") + "'"
 }
 
 func (w *Worker) runHook(command string) error {

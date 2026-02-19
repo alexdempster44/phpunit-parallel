@@ -17,6 +17,7 @@ type TUIOutput struct {
 	mu       sync.Mutex
 	onCancel func()
 	stopped  bool
+	actionCh chan output.RetryAction
 }
 
 func New() *TUIOutput {
@@ -24,7 +25,8 @@ func New() *TUIOutput {
 }
 
 func (t *TUIOutput) Start(opts output.StartOptions) {
-	t.model = NewModel(opts)
+	t.actionCh = make(chan output.RetryAction, 1)
+	t.model = NewModel(opts, t.actionCh)
 	t.program = tea.NewProgram(t.model, tea.WithAltScreen())
 
 	go func() {
@@ -33,6 +35,12 @@ func (t *TUIOutput) Start(opts output.StartOptions) {
 			t.mu.Lock()
 			t.stopped = true
 			t.mu.Unlock()
+			// If we quit unexpectedly (Ctrl+C during run), signal quit on the channel
+			// so AwaitRetry doesn't block forever.
+			select {
+			case t.actionCh <- output.ActionQuit:
+			default:
+			}
 			if t.onCancel != nil {
 				t.onCancel()
 			}
@@ -149,8 +157,30 @@ func (t *TUIOutput) Finish() {
 		t.program.Send(FinishMsg{})
 	}
 	t.mu.Unlock()
+}
 
+func (t *TUIOutput) AwaitRetry() output.RetryAction {
+	action := <-t.actionCh
+	if action == output.ActionRetry || action == output.ActionRerunAll {
+		return action
+	}
+	// ActionQuit: wait for program to exit
 	if t.program != nil {
 		t.program.Wait()
+	}
+	return output.ActionQuit
+}
+
+func (t *TUIOutput) RetryStart(opts output.RetryStartOptions) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+
+	if t.program != nil {
+		t.program.Send(RetryStartMsg{
+			Attempt:     opts.Attempt,
+			TestCount:   opts.TestCount,
+			WorkerCount: opts.WorkerCount,
+			WorkerIDs:   opts.WorkerIDs,
+		})
 	}
 }

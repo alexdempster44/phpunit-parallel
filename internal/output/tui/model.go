@@ -6,6 +6,8 @@ import (
 	"github.com/alexdempster44/phpunit-parallel/internal/output"
 )
 
+type RetryAction = output.RetryAction
+
 type TestStatus int
 
 const (
@@ -88,9 +90,11 @@ type Model struct {
 	filter           string
 	group            string
 	excludeGroup     string
+	retryAttempt     int
+	actionCh         chan<- RetryAction
 }
 
-func NewModel(opts output.StartOptions) *Model {
+func NewModel(opts output.StartOptions, actionCh chan<- RetryAction) *Model {
 	m := &Model{
 		workers:      make(map[int]*WorkerNode),
 		workerOrder:  make([]int, 0, opts.WorkerCount),
@@ -105,6 +109,7 @@ func NewModel(opts output.StartOptions) *Model {
 		filter:       opts.Filter,
 		group:        opts.Group,
 		excludeGroup: opts.ExcludeGroup,
+		actionCh:     actionCh,
 	}
 
 	for i := range opts.WorkerCount {

@@ -92,12 +92,18 @@ func (m *Model) renderHeader() string {
 	var status string
 	switch m.phase {
 	case PhaseRunning:
-		status = styles.TestRunning.Render("Running")
+		if m.retryAttempt > 0 {
+			status = styles.TestRunning.Render(fmt.Sprintf("Retry #%d", m.retryAttempt))
+		} else {
+			status = styles.TestRunning.Render("Running")
+		}
 	case PhaseCleanup:
 		status = styles.TestRunning.Render(fmt.Sprintf("Cleaning up workers... %d/%d", m.cleanupCompleted, m.cleanupTotal))
 	case PhaseComplete, PhaseExploring:
 		if m.totalFailed > 0 {
 			status = styles.TestFailed.Render("Complete - FAILED")
+		} else if m.retryAttempt > 0 {
+			status = styles.TestPassed.Render("Complete - PASSED (after retry)")
 		} else {
 			status = styles.TestPassed.Render("Complete - PASSED")
 		}
@@ -334,6 +340,9 @@ func (m *Model) renderSummaryPanel(panelWidth int, _ int) string {
 
 	lines = append(lines, "")
 	lines = append(lines, formatRow("Workers:", fmt.Sprintf("%d", m.workerCount), styles.Dim))
+	if m.retryAttempt > 0 {
+		lines = append(lines, formatRow("Retry:", fmt.Sprintf("#%d", m.retryAttempt), styles.Dim))
+	}
 
 	return strings.Join(lines, "\n")
 }
@@ -491,8 +500,10 @@ func (m *Model) renderHelpBar() string {
 	var help string
 	if m.phase == PhaseRunning {
 		help = "[Tab] Panel  [↑↓] Navigate  [Enter] Expand  [c] Copy  [Ctrl+C] Quit"
+	} else if m.phase == PhaseComplete && m.totalFailed > 0 {
+		help = "[Tab] Panel  [↑↓] Navigate  [Enter] Expand  [c] Copy  [r] Rerun failed  [a] Rerun all  [q] Quit"
 	} else {
-		help = "[Tab] Panel  [↑↓] Navigate  [Enter] Expand  [c] Copy  [q] Quit"
+		help = "[Tab] Panel  [↑↓] Navigate  [Enter] Expand  [c] Copy  [a] Rerun all  [q] Quit"
 	}
 	return styles.HelpBar.Render(help)
 }

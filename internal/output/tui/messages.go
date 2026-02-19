@@ -52,6 +52,13 @@ type CleanupProgressMsg struct {
 
 type FinishMsg struct{}
 
+type RetryStartMsg struct {
+	Attempt     int
+	TestCount   int
+	WorkerCount int
+	WorkerIDs   []int
+}
+
 type TickMsg struct{}
 
 type CopyNoticeExpiredMsg struct{}

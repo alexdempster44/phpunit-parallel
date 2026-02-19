@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <runner>
     <config-build-dir>.phpunit-parallel</config-build-dir>
-    <run-worker>docker run --rm -v "$(pwd)":/app -w /app php:8.3-cli php vendor/bin/phpunit</run-worker>
+    <before-worker>docker run -d --name "phpunit-worker-$WORKER_ID" -v "$(pwd)":/app -w /app php:8.3-cli sleep infinity</before-worker>
+    <run-worker>docker exec "phpunit-worker-$WORKER_ID" php vendor/bin/phpunit {}</run-worker>
+    <after-worker>docker rm -f "phpunit-worker-$WORKER_ID"</after-worker>
 </runner>

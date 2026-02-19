@@ -13,6 +13,21 @@ type StartOptions struct {
 	ExcludeGroup string
 }
 
+type RetryAction int
+
+const (
+	ActionRetry RetryAction = iota
+	ActionRerunAll
+	ActionQuit
+)
+
+type RetryStartOptions struct {
+	Attempt     int
+	TestCount   int
+	WorkerCount int
+	WorkerIDs   []int
+}
+
 type Output interface {
 	Start(opts StartOptions)
 	WorkerStart(workerID, testCount int)
@@ -21,6 +36,8 @@ type Output interface {
 	CleanupProgress(completed, total int)
 	Finish()
 	SetOnCancel(fn func())
+	AwaitRetry() RetryAction
+	RetryStart(opts RetryStartOptions)
 }
 
 func ParseTeamCityAttr(line, attr string) string {

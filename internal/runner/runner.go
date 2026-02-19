@@ -56,33 +56,9 @@ func (r *Runner) Run() error {
 		}
 	}
 
-	var cleanupOnce sync.Once
-	cleanup := func() {
-		cleanupOnce.Do(func() {
-			if r.RunnerConfig.AfterWorker == "" {
-				return
-			}
-			// Ignore signals during cleanup so a second Ctrl+C doesn't kill the process
-			signal.Ignore(syscall.SIGINT, syscall.SIGTERM)
-			defer signal.Reset(syscall.SIGINT, syscall.SIGTERM)
-			total := len(workers)
-			var completed atomic.Int32
-			r.Output.CleanupProgress(0, total)
-			var cwg sync.WaitGroup
-			for _, w := range workers {
-				cwg.Add(1)
-				go func(w *Worker) {
-					defer cwg.Done()
-					w.runAfterWorker()
-					done := int(completed.Add(1))
-					r.Output.CleanupProgress(done, total)
-				}(w)
-			}
-			cwg.Wait()
-		})
-	}
+	tracker := NewFailureTracker()
+	tracked := &trackedOutput{Output: r.Output, tracker: tracker}
 
-	r.Output.SetOnCancel(cleanup)
 	r.Output.Start(output.StartOptions{
 		TestCount:    len(tests),
 		WorkerCount:  len(workers),
@@ -91,22 +67,91 @@ func (r *Runner) Run() error {
 		ExcludeGroup: r.RunnerConfig.ExcludeGroup,
 	})
 
-	var wg sync.WaitGroup
+	// uncleanedWorkers tracks workers whose environments persist (failed workers).
+	uncleanedWorkers := make(map[int]*Worker)
 
-	for _, worker := range workers {
-		wg.Add(1)
-		go func(w *Worker) {
-			defer wg.Done()
+	// Track current workers for cancel callback
+	var currentWorkersMu sync.Mutex
+	var currentWorkers []*Worker
 
-			r.Output.WorkerStart(w.ID, w.TestCount())
-			err := w.Run()
-			r.Output.WorkerComplete(w.ID, err)
-		}(worker)
+	r.Output.SetOnCancel(func() {
+		currentWorkersMu.Lock()
+		cw := currentWorkers
+		currentWorkersMu.Unlock()
+		r.cleanupWorkers(cw)
+	})
+
+	retryAttempt := 0
+	allWorkers := make(map[int]*Worker)
+
+	for {
+		// Set workers to use tracked output so failure tracker sees all lines
+		for _, w := range workers {
+			w.Output = tracked
+		}
+
+		currentWorkersMu.Lock()
+		currentWorkers = workers
+		currentWorkersMu.Unlock()
+
+		workerErrors := r.runWorkers(workers, tracked)
+
+		// Keep all workers open (don't run after-worker hooks yet)
+		for _, w := range workers {
+			uncleanedWorkers[w.ID] = w
+			allWorkers[w.ID] = w
+			_ = workerErrors[w.ID] // tracked by failure tracker
+		}
+
+		r.Output.Finish()
+
+		action := r.Output.AwaitRetry()
+		if action == output.ActionQuit {
+			break
+		}
+
+		retryAttempt++
+		filter := tracker.BuildFilter()
+		tracker.Reset()
+
+		if action == output.ActionRerunAll {
+			// Rerun all workers without a filter
+			workers = r.createRetryWorkers(allWorkers, "", tracked)
+		} else {
+			// Retry only failed workers with a filter
+			failedWorkers := make(map[int]*Worker)
+			for id, w := range allWorkers {
+				if workerErrors[id] != nil {
+					failedWorkers[id] = w
+				}
+			}
+			workers = r.createRetryWorkers(failedWorkers, filter, tracked)
+		}
+		if len(workers) == 0 {
+			break
+		}
+
+		workerIDs := make([]int, len(workers))
+		retryTestCount := 0
+		for i, w := range workers {
+			workerIDs[i] = w.ID
+			retryTestCount += len(w.Tests)
+		}
+
+		r.Output.RetryStart(output.RetryStartOptions{
+			Attempt:     retryAttempt,
+			TestCount:   retryTestCount,
+			WorkerCount: len(workers),
+			WorkerIDs:   workerIDs,
+		})
 	}
 
-	wg.Wait()
-	cleanup()
-	r.Output.Finish()
+	// Final cleanup: clean up all remaining uncleaned workers
+	remaining := make([]*Worker, 0, len(uncleanedWorkers))
+	for _, w := range uncleanedWorkers {
+		remaining = append(remaining, w)
+	}
+	r.cleanupWorkers(remaining)
 
 	if r.RunnerConfig.After != "" {
 		cmd := exec.Command("sh", "-c", r.RunnerConfig.After)
@@ -120,6 +165,80 @@ func (r *Runner) Run() error {
 	}
 
 	return nil
+}
+
+// runWorkers launches all workers in parallel and returns a map of workerID -> error (nil if succeeded).
+func (r *Runner) runWorkers(workers []*Worker, out output.Output) map[int]error {
+	workerErrors := make(map[int]error)
+	var mu sync.Mutex
+	var wg sync.WaitGroup
+
+	for _, worker := range workers {
+		wg.Add(1)
+		go func(w *Worker) {
+			defer wg.Done()
+
+			out.WorkerStart(w.ID, w.TestCount())
+			err := w.Run()
+			out.WorkerComplete(w.ID, err)
+
+			mu.Lock()
+			workerErrors[w.ID] = err
+			mu.Unlock()
+		}(worker)
+	}
+
+	wg.Wait()
+	return workerErrors
+}
+
+// cleanupWorkers runs after-worker hooks for all provided workers.
+func (r *Runner) cleanupWorkers(workers []*Worker) {
+	if r.RunnerConfig.AfterWorker == "" || len(workers) == 0 {
+		return
+	}
+	signal.Ignore(syscall.SIGINT, syscall.SIGTERM)
+	defer signal.Reset(syscall.SIGINT, syscall.SIGTERM)
+	total := len(workers)
+	var completed atomic.Int32
+	r.Output.CleanupProgress(0, total)
+	var wg sync.WaitGroup
+	for _, w := range workers {
+		wg.Add(1)
+		go func(w *Worker) {
+			defer wg.Done()
+			w.runAfterWorker()
+			done := int(completed.Add(1))
+			r.Output.CleanupProgress(done, total)
+		}(w)
+	}
+	wg.Wait()
+}
+
+// createRetryWorkers creates new Worker structs from uncleaned workers with IsRetry=true and the retry filter.
+func (r *Runner) createRetryWorkers(uncleaned map[int]*Worker, filter string, out output.Output) []*Worker {
+	workers := make([]*Worker, 0, len(uncleaned))
+	for _, orig := range uncleaned {
+		w := NewWorker(
+			orig.ID,
+			orig.Tests,
+			orig.BeforeWorker,
+			orig.RunWorker,
+			orig.AfterWorker,
+			orig.BaseDir,
+			orig.ConfigBuildDir,
+			orig.Bootstrap,
+			orig.RawConfigXML,
+			out,
+			filter,
+			orig.Group,
+			orig.ExcludeGroup,
+		)
+		w.WorkerCount = orig.WorkerCount
+		w.IsRetry = true
+		workers = append(workers, w)
+	}
+	return workers
 }
 
 func (r *Runner) env(workerCount int) []string {

@@ -166,6 +166,14 @@ func (m *Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.toggle()
 		return m, nil
 
+	case key.Matches(msg, keys.Right):
+		m.expandError(true)
+		return m, nil
+
+	case key.Matches(msg, keys.Left):
+		m.expandError(false)
+		return m, nil
+
 	case key.Matches(msg, keys.PageUp):
 		m.moveCursor(-10)
 		return m, nil
@@ -234,6 +242,14 @@ func (m *Model) toggle() {
 	if m.activePanel == PanelErrors {
 		if m.errorCursor >= 0 && m.errorCursor < len(m.errors) {
 			m.errors[m.errorCursor].Expanded = !m.errors[m.errorCursor].Expanded
+		}
+	}
+}
+
+func (m *Model) expandError(expand bool) {
+	if m.activePanel == PanelErrors {
+		if m.errorCursor >= 0 && m.errorCursor < len(m.errors) {
+			m.errors[m.errorCursor].Expanded = expand
 		}
 	}
 }

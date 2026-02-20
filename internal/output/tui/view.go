@@ -499,11 +499,11 @@ func (m *Model) renderHelpBar() string {
 
 	var help string
 	if m.phase == PhaseRunning {
-		help = "[Tab] Panel  [↑↓] Navigate  [Enter] Expand  [c] Copy  [Ctrl+C] Quit"
+		help = "[Tab] Panel  [↑↓] Navigate  [←→] Expand  [c] Copy  [Ctrl+C] Quit"
 	} else if m.phase == PhaseComplete && m.totalFailed > 0 {
-		help = "[Tab] Panel  [↑↓] Navigate  [Enter] Expand  [c] Copy  [r] Rerun failed  [a] Rerun all  [q] Quit"
+		help = "[Tab] Panel  [↑↓] Navigate  [←→] Expand  [c] Copy  [r] Rerun failed  [a] Rerun all  [q] Quit"
 	} else {
-		help = "[Tab] Panel  [↑↓] Navigate  [Enter] Expand  [c] Copy  [a] Rerun all  [q] Quit"
+		help = "[Tab] Panel  [↑↓] Navigate  [←→] Expand  [c] Copy  [a] Rerun all  [q] Quit"
 	}
 	return styles.HelpBar.Render(help)
 }

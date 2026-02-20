@@ -6,6 +6,8 @@ type KeyMap struct {
 	Up       key.Binding
 	Down     key.Binding
 	Enter    key.Binding
+	Left     key.Binding
+	Right    key.Binding
 	Tab      key.Binding
 	Quit     key.Binding
 	PageUp   key.Binding
@@ -28,6 +30,14 @@ func DefaultKeyMap() KeyMap {
 		Enter: key.NewBinding(
 			key.WithKeys("enter", " "),
 			key.WithHelp("Enter/Space", "toggle"),
+		),
+		Left: key.NewBinding(
+			key.WithKeys("left", "h"),
+			key.WithHelp("←/h", "collapse"),
+		),
+		Right: key.NewBinding(
+			key.WithKeys("right", "l"),
+			key.WithHelp("→/l", "expand"),
 		),
 		Tab: key.NewBinding(
 			key.WithKeys("tab"),

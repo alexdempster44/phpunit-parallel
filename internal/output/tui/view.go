@@ -145,7 +145,7 @@ func (m *Model) renderOverallProgress() string {
 
 	var statsLine string
 	if m.hasTestCount {
-		percent := 0
+		percent := 100
 		if total > 0 {
 			percent = (completed * 100) / total
 		}
@@ -175,6 +175,9 @@ func (m *Model) renderOverallProgress() string {
 
 func (m *Model) buildProgressBar(completed, failed, total, width int, dimmed bool) string {
 	if total == 0 {
+		if dimmed {
+			return styles.Dim.Render("[" + strings.Repeat("█", width) + "]")
+		}
 		return styles.Dim.Render("[" + strings.Repeat("░", width) + "]")
 	}
 
@@ -231,7 +234,7 @@ func (m *Model) renderWorkersPanel(panelWidth int, panelHeight int) string {
 
 		var statsLine string
 		if w.HasTestCount {
-			percent := 0
+			percent := 100
 			if w.Total > 0 {
 				percent = (w.Completed * 100) / w.Total
 			}

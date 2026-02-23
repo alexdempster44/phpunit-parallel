@@ -54,6 +54,10 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.handleTestSkip(msg)
 		return m, nil
 
+	case WorkerCompleteMsg:
+		m.handleWorkerComplete(msg)
+		return m, nil
+
 	case TestCountMsg:
 		m.handleTestCount(msg)
 		return m, nil
@@ -383,6 +387,19 @@ func (m *Model) handleTestSkip(msg TestSkipMsg) {
 	w.Completed++
 	m.totalComplete++
 	m.totalSkipped++
+}
+
+func (m *Model) handleWorkerComplete(msg WorkerCompleteMsg) {
+	w := m.workers[msg.WorkerID]
+	if w == nil {
+		return
+	}
+
+	if !w.HasTestCount {
+		m.testCount -= w.TestFiles
+		w.Total = 0
+		w.HasTestCount = true
+	}
 }
 
 func (m *Model) handleTestCount(msg TestCountMsg) {

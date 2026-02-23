@@ -13,6 +13,7 @@ type KeyMap struct {
 	PageUp   key.Binding
 	PageDown key.Binding
 	Copy     key.Binding
+	CopyAll  key.Binding
 	Retry    key.Binding
 	RerunAll key.Binding
 }
@@ -58,6 +59,10 @@ func DefaultKeyMap() KeyMap {
 		Copy: key.NewBinding(
 			key.WithKeys("c"),
 			key.WithHelp("c", "copy error"),
+		),
+		CopyAll: key.NewBinding(
+			key.WithKeys("C"),
+			key.WithHelp("C", "copy all"),
 		),
 		Retry: key.NewBinding(
 			key.WithKeys("r"),

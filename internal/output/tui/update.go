@@ -128,6 +128,10 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m *Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	keys := DefaultKeyMap()
 
+	if m.showCopyModal {
+		return m.handleCopyModalKey(msg, keys)
+	}
+
 	switch {
 	case key.Matches(msg, keys.Retry):
 		if m.phase == PhaseComplete && m.totalFailed > 0 && m.actionCh != nil {
@@ -192,12 +196,159 @@ func (m *Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.moveCursor(10)
 		return m, nil
 
+	case key.Matches(msg, keys.CopyAll):
+		if len(m.errors)+len(m.deprecations) > 0 {
+			m.showCopyModal = true
+			m.copyModalCursor = 0
+			m.copyModalErrors = len(m.errors) > 0
+			m.copyModalDeprecations = len(m.deprecations) > 0
+		}
+		return m, nil
+
 	case key.Matches(msg, keys.Copy):
 		return m.copyError()
 
 	}
 
 	return m, nil
+}
+
+func (m *Model) copyModalItemCount() int {
+	n := 0
+	if len(m.errors) > 0 {
+		n++
+	}
+	if len(m.deprecations) > 0 {
+		n++
+	}
+	return n + 2 // checkboxes + 2 buttons
+}
+
+func (m *Model) handleCopyModalKey(msg tea.KeyMsg, keys KeyMap) (tea.Model, tea.Cmd) {
+	itemCount := m.copyModalItemCount()
+	if m.copyModalCursor >= itemCount {
+		m.copyModalCursor = itemCount - 1
+	}
+
+	switch {
+	case key.Matches(msg, keys.Up):
+		if m.copyModalCursor > 0 {
+			m.copyModalCursor--
+		}
+		return m, nil
+
+	case key.Matches(msg, keys.Down):
+		if m.copyModalCursor < itemCount-1 {
+			m.copyModalCursor++
+		}
+		return m, nil
+
+	case key.Matches(msg, keys.Enter):
+		checkboxCount := itemCount - 2
+		if m.copyModalCursor < checkboxCount {
+			// Toggle checkbox
+			m.toggleCopyModalCheckbox(m.copyModalCursor)
+		} else {
+			// Button press
+			m.showCopyModal = false
+			namesOnly := m.copyModalCursor == checkboxCount
+			return m.copyAllEntries(namesOnly)
+		}
+		return m, nil
+
+	case key.Matches(msg, keys.Quit), key.Matches(msg, keys.CopyAll):
+		m.showCopyModal = false
+		return m, nil
+
+	default:
+		if msg.String() == "esc" {
+			m.showCopyModal = false
+			return m, nil
+		}
+	}
+
+	return m, nil
+}
+
+func (m *Model) toggleCopyModalCheckbox(index int) {
+	// Map index to the correct checkbox based on which are visible
+	i := 0
+	if len(m.errors) > 0 {
+		if i == index {
+			m.copyModalErrors = !m.copyModalErrors
+			return
+		}
+		i++
+	}
+	if len(m.deprecations) > 0 {
+		if i == index {
+			m.copyModalDeprecations = !m.copyModalDeprecations
+			return
+		}
+	}
+}
+
+func (m *Model) copyAllEntries(namesOnly bool) (tea.Model, tea.Cmd) {
+	var entries []string
+	var count int
+
+	formatEntry := func(name, message, details string) string {
+		var parts []string
+		parts = append(parts, name)
+		if message != "" {
+			parts = append(parts, message)
+		}
+		if details != "" {
+			parts = append(parts, details)
+		}
+		return strings.Join(parts, "\n\n")
+	}
+
+	if m.copyModalErrors {
+		for _, e := range m.errors {
+			if namesOnly {
+				entries = append(entries, e.TestName)
+			} else {
+				entries = append(entries, formatEntry(e.TestName, e.Message, e.Details))
+			}
+		}
+		count += len(m.errors)
+	}
+
+	if m.copyModalDeprecations {
+		for _, d := range m.deprecations {
+			if namesOnly {
+				entries = append(entries, d.TestName)
+			} else {
+				entries = append(entries, formatEntry(d.TestName, d.Message, d.Details))
+			}
+		}
+		count += len(m.deprecations)
+	}
+
+	if len(entries) == 0 {
+		m.copyNotice = "Nothing to copy"
+		return m, tea.Tick(2*time.Second, func(_ time.Time) tea.Msg {
+			return CopyNoticeExpiredMsg{}
+		})
+	}
+
+	var text string
+	if namesOnly {
+		text = strings.Join(entries, "\n")
+	} else {
+		text = strings.Join(entries, "\n\n---\n\n")
+	}
+
+	if err := clipboard.WriteAll(text); err != nil {
+		m.copyNotice = fmt.Sprintf("Copy failed: %s", err)
+	} else {
+		m.copyNotice = fmt.Sprintf("Copied %d entries to clipboard!", count)
+	}
+
+	return m, tea.Tick(2*time.Second, func(_ time.Time) tea.Msg {
+		return CopyNoticeExpiredMsg{}
+	})
 }
 
 func (m *Model) moveCursor(delta int) {
@@ -338,6 +489,8 @@ func (m *Model) handleTestFail(msg TestFailMsg) {
 		return
 	}
 
+	firstError := len(m.errors) == 0
+
 	for _, t := range w.Tests {
 		if t.Key == msg.TestName {
 			t.Status = StatusFailed
@@ -354,6 +507,9 @@ func (m *Model) handleTestFail(msg TestFailMsg) {
 				WorkerID: msg.WorkerID,
 				Expanded: false,
 			})
+			if m.showCopyModal && firstError {
+				m.copyModalErrors = true
+			}
 			return
 		}
 	}
@@ -377,9 +533,13 @@ func (m *Model) handleTestFail(msg TestFailMsg) {
 		WorkerID: msg.WorkerID,
 		Expanded: false,
 	})
+	if m.showCopyModal && firstError {
+		m.copyModalErrors = true
+	}
 }
 
 func (m *Model) handleTestDeprecation(msg TestDeprecationMsg) {
+	firstDeprecation := len(m.deprecations) == 0
 	m.totalDeprecations++
 	m.deprecations = append(m.deprecations, DeprecationEntry{
 		TestName: msg.TestName,
@@ -388,6 +548,9 @@ func (m *Model) handleTestDeprecation(msg TestDeprecationMsg) {
 		WorkerID: msg.WorkerID,
 		Expanded: false,
 	})
+	if m.showCopyModal && firstDeprecation {
+		m.copyModalDeprecations = true
+	}
 }
 
 func (m *Model) handleTestSkip(msg TestSkipMsg) {

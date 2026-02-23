@@ -76,7 +76,13 @@ func (m *Model) View() string {
 
 	b.WriteString(m.renderHelpBar())
 
-	return b.String()
+	output := b.String()
+
+	if m.showCopyModal {
+		output = m.overlayModal(output, m.renderCopyModal())
+	}
+
+	return output
 }
 
 func (m *Model) getElapsed() time.Duration {
@@ -558,13 +564,122 @@ func (m *Model) renderHelpBar() string {
 
 	var help string
 	if m.phase == PhaseRunning {
-		help = "[Tab] Panel  [↑↓] Navigate  [←→] Expand  [c] Copy  [Ctrl+C] Quit"
+		help = "[Tab] Panel  [↑↓] Navigate  [←→] Expand  [c] Copy  [C] Copy all  [Ctrl+C] Quit"
 	} else if m.phase == PhaseComplete && m.totalFailed > 0 {
-		help = "[Tab] Panel  [↑↓] Navigate  [←→] Expand  [c] Copy  [r] Rerun failed  [a] Rerun all  [q] Quit"
+		help = "[Tab] Panel  [↑↓] Navigate  [←→] Expand  [c] Copy  [C] Copy all  [r] Rerun failed  [a] Rerun all  [q] Quit"
 	} else {
-		help = "[Tab] Panel  [↑↓] Navigate  [←→] Expand  [c] Copy  [a] Rerun all  [q] Quit"
+		help = "[Tab] Panel  [↑↓] Navigate  [←→] Expand  [c] Copy  [C] Copy all  [a] Rerun all  [q] Quit"
 	}
 	return styles.HelpBar.Render(help)
+}
+
+func (m *Model) renderCopyModal() string {
+	modalWidth := 30
+	var lines []string
+
+	lines = append(lines, styles.Bold.Render("Copy to clipboard"))
+	lines = append(lines, "")
+
+	lines = append(lines, styles.Dim.Render("Include:"))
+
+	index := 0
+
+	if len(m.errors) > 0 {
+		check := "[ ]"
+		if m.copyModalErrors {
+			check = "[x]"
+		}
+		label := fmt.Sprintf("%s Errors (%d)", check, len(m.errors))
+		if m.copyModalCursor == index {
+			lines = append(lines, styles.Cursor.Render("  > "+label))
+		} else {
+			lines = append(lines, "    "+label)
+		}
+		index++
+	}
+
+	if len(m.deprecations) > 0 {
+		check := "[ ]"
+		if m.copyModalDeprecations {
+			check = "[x]"
+		}
+		label := fmt.Sprintf("%s Deprecations (%d)", check, len(m.deprecations))
+		if m.copyModalCursor == index {
+			lines = append(lines, styles.Cursor.Render("  > "+label))
+		} else {
+			lines = append(lines, "    "+label)
+		}
+		index++
+	}
+
+	lines = append(lines, "")
+
+	namesLabel := "Copy names"
+	if m.copyModalCursor == index {
+		lines = append(lines, styles.Cursor.Render("  > "+namesLabel))
+	} else {
+		lines = append(lines, "    "+namesLabel)
+	}
+	index++
+
+	detailsLabel := "Copy details"
+	if m.copyModalCursor == index {
+		lines = append(lines, styles.Cursor.Render("  > "+detailsLabel))
+	} else {
+		lines = append(lines, "    "+detailsLabel)
+	}
+
+	lines = append(lines, "")
+	lines = append(lines, styles.Dim.Render("Esc to cancel"))
+
+	content := strings.Join(lines, "\n")
+
+	return styles.ActivePanel.
+		Width(modalWidth).
+		Render(content)
+}
+
+func (m *Model) overlayModal(background, modal string) string {
+	bgLines := strings.Split(background, "\n")
+	modalLines := strings.Split(modal, "\n")
+
+	modalHeight := len(modalLines)
+	modalWidth := 0
+	for _, line := range modalLines {
+		if w := visibleLength(line); w > modalWidth {
+			modalWidth = w
+		}
+	}
+
+	startRow := max((m.height-modalHeight)/2, 0)
+	startCol := max((m.width-modalWidth)/2, 0)
+
+	// Pad background to fill height if needed
+	for len(bgLines) < m.height {
+		bgLines = append(bgLines, "")
+	}
+
+	for i, modalLine := range modalLines {
+		row := startRow + i
+		if row >= len(bgLines) {
+			break
+		}
+		bgRunes := []rune(expandAnsiToRunes(bgLines[row], m.width))
+		modalRunes := []rune(modalLine)
+
+		// Build: background prefix + modal line + background suffix
+		prefix := string(bgRunes[:min(startCol, len(bgRunes))])
+		suffixStart := startCol + visibleLength(modalLine)
+		var suffix string
+		if suffixStart < len(bgRunes) {
+			suffix = string(bgRunes[suffixStart:])
+		}
+
+		_ = modalRunes
+		bgLines[row] = prefix + modalLine + suffix
+	}
+
+	return strings.Join(bgLines, "\n")
 }
 
 func truncateName(name string, maxLen int) string {
@@ -591,6 +706,30 @@ func wrapText(text string, maxLen int) []string {
 		lines = append(lines, text)
 	}
 	return lines
+}
+
+// expandAnsiToRunes returns a slice of runes of exactly targetWidth visible characters,
+// where each rune position maps to one visible column. ANSI sequences are stripped.
+func expandAnsiToRunes(s string, targetWidth int) string {
+	var result []rune
+	inEscape := false
+	for _, r := range s {
+		if r == '\033' {
+			inEscape = true
+			continue
+		}
+		if inEscape {
+			if r == 'm' {
+				inEscape = false
+			}
+			continue
+		}
+		result = append(result, r)
+	}
+	for len(result) < targetWidth {
+		result = append(result, ' ')
+	}
+	return string(result)
 }
 
 func visibleLength(s string) int {

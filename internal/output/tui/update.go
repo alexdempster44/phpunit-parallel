@@ -50,6 +50,10 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.handleTestFail(msg)
 		return m, nil
 
+	case TestDeprecationMsg:
+		m.handleTestDeprecation(msg)
+		return m, nil
+
 	case TestSkipMsg:
 		m.handleTestSkip(msg)
 		return m, nil
@@ -96,9 +100,11 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.workerOrder = append(m.workerOrder, id)
 		}
 		m.errors = make([]ErrorEntry, 0)
+		m.deprecations = make([]DeprecationEntry, 0)
 		m.totalComplete = 0
 		m.totalFailed = 0
 		m.totalSkipped = 0
+		m.totalDeprecations = 0
 		m.testCount = msg.TestCount
 		m.workerCount = msg.WorkerCount
 		m.hasTestCount = false
@@ -200,7 +206,7 @@ func (m *Model) moveCursor(delta int) {
 		m.workersOffset += delta
 
 	case PanelErrors:
-		maxCursor := len(m.errors) - 1
+		maxCursor := len(m.errors) + len(m.deprecations) - 1
 		m.errorCursor += delta
 		if m.errorCursor < 0 {
 			m.errorCursor = 0
@@ -212,22 +218,31 @@ func (m *Model) moveCursor(delta int) {
 }
 
 func (m *Model) copyError() (tea.Model, tea.Cmd) {
-	if m.activePanel != PanelErrors || len(m.errors) == 0 {
+	totalEntries := len(m.errors) + len(m.deprecations)
+	if m.activePanel != PanelErrors || totalEntries == 0 {
 		return m, nil
 	}
 
-	if m.errorCursor < 0 || m.errorCursor >= len(m.errors) {
+	if m.errorCursor < 0 || m.errorCursor >= totalEntries {
 		return m, nil
 	}
 
-	e := m.errors[m.errorCursor]
+	var testName, message, details string
+	if m.errorCursor < len(m.errors) {
+		e := m.errors[m.errorCursor]
+		testName, message, details = e.TestName, e.Message, e.Details
+	} else {
+		d := m.deprecations[m.errorCursor-len(m.errors)]
+		testName, message, details = d.TestName, d.Message, d.Details
+	}
+
 	var parts []string
-	parts = append(parts, e.TestName)
-	if e.Message != "" {
-		parts = append(parts, e.Message)
+	parts = append(parts, testName)
+	if message != "" {
+		parts = append(parts, message)
 	}
-	if e.Details != "" {
-		parts = append(parts, e.Details)
+	if details != "" {
+		parts = append(parts, details)
 	}
 	text := strings.Join(parts, "\n\n")
 
@@ -246,6 +261,8 @@ func (m *Model) toggle() {
 	if m.activePanel == PanelErrors {
 		if m.errorCursor >= 0 && m.errorCursor < len(m.errors) {
 			m.errors[m.errorCursor].Expanded = !m.errors[m.errorCursor].Expanded
+		} else if idx := m.errorCursor - len(m.errors); idx >= 0 && idx < len(m.deprecations) {
+			m.deprecations[idx].Expanded = !m.deprecations[idx].Expanded
 		}
 	}
 }
@@ -254,6 +271,8 @@ func (m *Model) expandError(expand bool) {
 	if m.activePanel == PanelErrors {
 		if m.errorCursor >= 0 && m.errorCursor < len(m.errors) {
 			m.errors[m.errorCursor].Expanded = expand
+		} else if idx := m.errorCursor - len(m.errors); idx >= 0 && idx < len(m.deprecations) {
+			m.deprecations[idx].Expanded = expand
 		}
 	}
 }
@@ -352,6 +371,17 @@ func (m *Model) handleTestFail(msg TestFailMsg) {
 	m.totalComplete++
 	m.totalFailed++
 	m.errors = append(m.errors, ErrorEntry{
+		TestName: msg.TestName,
+		Message:  msg.Message,
+		Details:  msg.Details,
+		WorkerID: msg.WorkerID,
+		Expanded: false,
+	})
+}
+
+func (m *Model) handleTestDeprecation(msg TestDeprecationMsg) {
+	m.totalDeprecations++
+	m.deprecations = append(m.deprecations, DeprecationEntry{
 		TestName: msg.TestName,
 		Message:  msg.Message,
 		Details:  msg.Details,

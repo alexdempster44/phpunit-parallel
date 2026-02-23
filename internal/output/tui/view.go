@@ -157,6 +157,9 @@ func (m *Model) renderOverallProgress() string {
 	if failed > 0 {
 		statsLine += styles.TestFailed.Render(fmt.Sprintf(" %d failed", failed))
 	}
+	if m.totalDeprecations > 0 {
+		statsLine += styles.TestSkipped.Render(fmt.Sprintf(" %d deprecated", m.totalDeprecations))
+	}
 
 	var etaLine string
 	if m.phase == PhaseRunning && m.hasTestCount && completed > 0 && total > 0 {
@@ -346,6 +349,9 @@ func (m *Model) renderSummaryPanel(panelWidth int, _ int) string {
 	}
 
 	lines = append(lines, "")
+	lines = append(lines, formatRow("Deprecations:", fmt.Sprintf("%d", m.totalDeprecations), styles.TestSkipped))
+
+	lines = append(lines, "")
 	lines = append(lines, formatRow("Workers:", fmt.Sprintf("%d", m.workerCount), styles.Dim))
 	if m.retryAttempt > 0 {
 		lines = append(lines, formatRow("Retry:", fmt.Sprintf("#%d", m.retryAttempt), styles.Dim))
@@ -419,11 +425,15 @@ func (m *Model) renderRunningPanel(height int, panelWidth int) string {
 
 func (m *Model) renderErrorsPanel(height int, panelWidth int) string {
 	var lines []string
+
 	title := fmt.Sprintf("Errors (%d)", len(m.errors))
+	if m.totalDeprecations > 0 {
+		title += fmt.Sprintf(" | Deprecations (%d)", len(m.deprecations))
+	}
 	lines = append(lines, styles.Bold.Render(title))
 	lines = append(lines, "")
 
-	if len(m.errors) == 0 {
+	if len(m.errors) == 0 && len(m.deprecations) == 0 {
 		lines = append(lines, styles.Dim.Render("No errors"))
 		return strings.Join(lines, "\n")
 	}
@@ -432,6 +442,7 @@ func (m *Model) renderErrorsPanel(height int, panelWidth int) string {
 	cursorStart := 0
 	cursorEnd := 0
 
+	// Render error entries
 	for i, e := range m.errors {
 		expandIcon := styles.IconCollaps
 		if e.Expanded {
@@ -467,6 +478,47 @@ func (m *Model) renderErrorsPanel(height int, panelWidth int) string {
 		}
 
 		if i == m.errorCursor {
+			cursorEnd = len(lines) - 2
+		}
+	}
+
+	// Render deprecation entries
+	for i, d := range m.deprecations {
+		globalIdx := len(m.errors) + i
+		expandIcon := styles.IconCollaps
+		if d.Expanded {
+			expandIcon = styles.IconExpand
+		}
+
+		if globalIdx == m.errorCursor {
+			cursorStart = len(lines) - 2
+		}
+
+		line := fmt.Sprintf("%s %s", expandIcon, styles.TestSkipped.Render(truncateName(d.TestName, maxNameLen)))
+		if m.activePanel == PanelErrors && globalIdx == m.errorCursor {
+			line = styles.Cursor.Render(line)
+		}
+		lines = append(lines, line)
+
+		if d.Expanded {
+			detailWidth := max(panelWidth-4, 10)
+			if d.Message != "" {
+				msgLines := wrapText(d.Message, detailWidth)
+				for _, ml := range msgLines {
+					lines = append(lines, "  "+styles.ErrorMsg.Render(ml))
+				}
+			}
+			if d.Details != "" {
+				detailLines := strings.Split(d.Details, "\n")
+				for _, dl := range detailLines {
+					if dl != "" {
+						lines = append(lines, "  "+styles.ErrorDetail.Render(truncateName(dl, detailWidth)))
+					}
+				}
+			}
+		}
+
+		if globalIdx == m.errorCursor {
 			cursorEnd = len(lines) - 2
 		}
 	}

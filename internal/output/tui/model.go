@@ -45,6 +45,14 @@ type ErrorEntry struct {
 	Expanded bool
 }
 
+type DeprecationEntry struct {
+	TestName string
+	Message  string
+	Details  string
+	WorkerID int
+	Expanded bool
+}
+
 type RunPhase int
 
 const (
@@ -63,36 +71,38 @@ const (
 )
 
 type Model struct {
-	workers          map[int]*WorkerNode
-	workerOrder      []int
-	errors           []ErrorEntry
-	phase            RunPhase
-	activePanel      Panel
-	runningCursor    int
-	errorCursor      int
-	runningOffset    int
-	errorOffset      int
-	workersOffset    int
-	testCount        int
-	workerCount      int
-	startTime        time.Time
-	endTime          time.Time
-	width            int
-	height           int
-	quitting         bool
-	hasTestCount     bool
-	totalComplete    int
-	totalFailed      int
-	totalSkipped     int
-	copyNotice       string
-	cleanupCompleted int
-	cleanupTotal     int
-	filter           string
-	group            string
-	excludeGroup     string
-	retryAttempt     int
-	actionCh         chan<- RetryAction
-	version          string
+	workers           map[int]*WorkerNode
+	workerOrder       []int
+	errors            []ErrorEntry
+	deprecations      []DeprecationEntry
+	phase             RunPhase
+	activePanel       Panel
+	runningCursor     int
+	errorCursor       int
+	runningOffset     int
+	errorOffset       int
+	workersOffset     int
+	testCount         int
+	workerCount       int
+	startTime         time.Time
+	endTime           time.Time
+	width             int
+	height            int
+	quitting          bool
+	hasTestCount      bool
+	totalComplete     int
+	totalFailed       int
+	totalSkipped      int
+	totalDeprecations int
+	copyNotice        string
+	cleanupCompleted  int
+	cleanupTotal      int
+	filter            string
+	group             string
+	excludeGroup      string
+	retryAttempt      int
+	actionCh          chan<- RetryAction
+	version           string
 }
 
 func NewModel(opts output.StartOptions, actionCh chan<- RetryAction) *Model {
@@ -100,6 +110,7 @@ func NewModel(opts output.StartOptions, actionCh chan<- RetryAction) *Model {
 		workers:      make(map[int]*WorkerNode),
 		workerOrder:  make([]int, 0, opts.WorkerCount),
 		errors:       make([]ErrorEntry, 0),
+		deprecations: make([]DeprecationEntry, 0),
 		phase:        PhaseRunning,
 		activePanel:  PanelErrors,
 		testCount:    opts.TestCount,

@@ -65,7 +65,7 @@ func (w *Worker) Run() error {
 	}
 	defer func() { _ = os.Remove(configPath) }()
 
-	args := []string{"--configuration", configPath, "--teamcity"}
+	args := []string{"--configuration", configPath, "--teamcity", "--display-deprecations"}
 	if w.Filter != "" {
 		args = append(args, "--filter", w.Filter)
 	}

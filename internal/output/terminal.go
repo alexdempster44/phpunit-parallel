@@ -7,15 +7,17 @@ import (
 )
 
 type terminalWorkerState struct {
-	testFileCount  int
-	testCount      int
-	hasTestCount   bool
-	testsCompleted int
-	testsFailed    int
-	testsSkipped   int
-	completed      bool
-	err            error
-	failedTests    map[string]bool
+	testFileCount     int
+	testCount         int
+	hasTestCount      bool
+	testsCompleted    int
+	testsFailed       int
+	testsSkipped      int
+	testsDeprecated   int
+	completed         bool
+	err               error
+	failedTests       map[string]bool
+	deprecationParser *DeprecationParser
 }
 
 type TerminalOutput struct {
@@ -53,10 +55,21 @@ func (t *TerminalOutput) WorkerStart(workerID, testCount int) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
-	t.workers[workerID] = &terminalWorkerState{
+	w := &terminalWorkerState{
 		testFileCount: testCount,
 		failedTests:   make(map[string]bool),
 	}
+	w.deprecationParser = NewDeprecationParser(func(info DeprecationInfo) {
+		w.testsDeprecated++
+		fmt.Printf("[deprecation] %s\n", info.TestName)
+		if info.Message != "" {
+			fmt.Printf("[deprecation]   Message: %s\n", info.Message)
+		}
+		if info.Source != "" {
+			fmt.Printf("[deprecation]   Source: %s\n", info.Source)
+		}
+	})
+	t.workers[workerID] = w
 	fmt.Printf("[worker %d] Started with %d test files\n", workerID, testCount)
 }
 
@@ -105,6 +118,11 @@ func (t *TerminalOutput) WorkerLine(workerID int, line string) {
 			w.testsCompleted++
 		}
 	}
+
+	// Parse non-TeamCity lines for deprecation output
+	if w.deprecationParser != nil {
+		w.deprecationParser.ParseLine(line)
+	}
 }
 
 func (t *TerminalOutput) WorkerComplete(workerID int, err error) {
@@ -114,6 +132,10 @@ func (t *TerminalOutput) WorkerComplete(workerID int, err error) {
 	w := t.workers[workerID]
 	if w == nil {
 		return
+	}
+
+	if w.deprecationParser != nil {
+		w.deprecationParser.Flush()
 	}
 
 	w.completed = true
@@ -137,14 +159,16 @@ func (t *TerminalOutput) Finish() {
 	totalTests := 0
 	totalFailed := 0
 	totalSkipped := 0
+	totalDeprecated := 0
 	for _, w := range t.workers {
 		totalTests += w.testsCompleted
 		totalFailed += w.testsFailed
 		totalSkipped += w.testsSkipped
+		totalDeprecated += w.testsDeprecated
 	}
 
 	totalPassed := totalTests - totalFailed - totalSkipped
-	fmt.Printf("[summary] Total: %d tests, %d passed, %d failed, %d skipped\n", totalTests, totalPassed, totalFailed, totalSkipped)
+	fmt.Printf("[summary] Total: %d tests, %d passed, %d failed, %d skipped, %d deprecated\n", totalTests, totalPassed, totalFailed, totalSkipped, totalDeprecated)
 
 	if totalFailed > 0 {
 		fmt.Println("[result] FAILED")

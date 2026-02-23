@@ -35,6 +35,13 @@ type TestSkipMsg struct {
 	Message  string
 }
 
+type TestDeprecationMsg struct {
+	WorkerID int
+	TestName string
+	Message  string
+	Details  string
+}
+
 type TestCountMsg struct {
 	WorkerID int
 	Count    int

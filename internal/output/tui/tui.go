@@ -12,12 +12,13 @@ import (
 )
 
 type TUIOutput struct {
-	program  *tea.Program
-	model    *Model
-	mu       sync.Mutex
-	onCancel func()
-	stopped  bool
-	actionCh chan output.RetryAction
+	program            *tea.Program
+	model              *Model
+	mu                 sync.Mutex
+	onCancel           func()
+	stopped            bool
+	actionCh           chan output.RetryAction
+	deprecationParsers map[int]*output.DeprecationParser
 }
 
 func New() *TUIOutput {
@@ -52,6 +53,21 @@ func (t *TUIOutput) Start(opts output.StartOptions) {
 func (t *TUIOutput) WorkerStart(workerID, testCount int) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
+
+	if t.deprecationParsers == nil {
+		t.deprecationParsers = make(map[int]*output.DeprecationParser)
+	}
+	prog := t.program
+	t.deprecationParsers[workerID] = output.NewDeprecationParser(func(info output.DeprecationInfo) {
+		if prog != nil {
+			prog.Send(TestDeprecationMsg{
+				WorkerID: workerID,
+				TestName: info.TestName,
+				Message:  info.Message,
+				Details:  info.Source,
+			})
+		}
+	})
 
 	if t.program != nil {
 		t.program.Send(WorkerStartMsg{
@@ -113,11 +129,20 @@ func (t *TUIOutput) WorkerLine(workerID int, line string) {
 			TestName: name,
 		})
 	}
+
+	// Parse non-TeamCity lines for deprecation output
+	if parser := t.deprecationParsers[workerID]; parser != nil {
+		parser.ParseLine(line)
+	}
 }
 
 func (t *TUIOutput) WorkerComplete(workerID int, err error) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
+
+	if parser := t.deprecationParsers[workerID]; parser != nil {
+		parser.Flush()
+	}
 
 	if t.program != nil {
 		t.program.Send(WorkerCompleteMsg{

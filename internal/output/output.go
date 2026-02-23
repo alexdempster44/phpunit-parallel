@@ -11,6 +11,7 @@ type StartOptions struct {
 	Filter       string
 	Group        string
 	ExcludeGroup string
+	Version      string
 }
 
 type RetryAction int

@@ -21,6 +21,7 @@ var (
 	runnerConfigFile string
 	teamcity         bool
 	runnerConfig     = config.DefaultRunner()
+	versionInfo      string
 )
 
 var rootCmd = &cobra.Command{
@@ -118,6 +119,7 @@ var rootCmd = &cobra.Command{
 		}
 
 		r := runner.New(cfg, runnerConfig, baseDir, out)
+		r.Version = versionInfo
 		return r.Run()
 	},
 }
@@ -141,6 +143,7 @@ func init() {
 }
 
 func SetVersionInfo(version string) {
+	versionInfo = version
 	rootCmd.Version = version
 }
 

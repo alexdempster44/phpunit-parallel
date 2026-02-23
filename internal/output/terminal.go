@@ -34,6 +34,9 @@ func (t *TerminalOutput) Start(opts StartOptions) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
+	if opts.Version != "" {
+		fmt.Printf("[start] PHPUnit Parallel v%s\n", opts.Version)
+	}
 	fmt.Printf("[start] Running %d test files across %d workers\n", opts.TestCount, opts.WorkerCount)
 	if opts.Filter != "" {
 		fmt.Printf("[start] Filter: %s\n", opts.Filter)

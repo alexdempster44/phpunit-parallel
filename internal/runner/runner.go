@@ -21,6 +21,7 @@ type Runner struct {
 	RunnerConfig  *config.Runner
 	BaseDir       string
 	Output        output.Output
+	Version       string
 }
 
 func New(phpunitConfig *config.PHPUnit, runnerConfig *config.Runner, baseDir string, out output.Output) *Runner {
@@ -65,6 +66,7 @@ func (r *Runner) Run() error {
 		Filter:       r.RunnerConfig.Filter,
 		Group:        r.RunnerConfig.Group,
 		ExcludeGroup: r.RunnerConfig.ExcludeGroup,
+		Version:      r.Version,
 	})
 
 	// uncleanedWorkers tracks workers whose environments persist (failed workers).

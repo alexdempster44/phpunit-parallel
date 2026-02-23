@@ -109,7 +109,11 @@ func (m *Model) renderHeader() string {
 		}
 	}
 
-	title := styles.Title.Render("PHPUnit Parallel")
+	titleText := "PHPUnit Parallel"
+	if m.version != "" {
+		titleText += " v" + m.version
+	}
+	title := styles.Title.Render(titleText)
 	header := fmt.Sprintf("%s - %s (%s elapsed)", title, status, elapsed)
 
 	if args := m.renderArgs(); args != "" {

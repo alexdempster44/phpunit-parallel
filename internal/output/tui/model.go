@@ -92,6 +92,7 @@ type Model struct {
 	excludeGroup     string
 	retryAttempt     int
 	actionCh         chan<- RetryAction
+	version          string
 }
 
 func NewModel(opts output.StartOptions, actionCh chan<- RetryAction) *Model {
@@ -110,6 +111,7 @@ func NewModel(opts output.StartOptions, actionCh chan<- RetryAction) *Model {
 		group:        opts.Group,
 		excludeGroup: opts.ExcludeGroup,
 		actionCh:     actionCh,
+		version:      opts.Version,
 	}
 
 	for i := range opts.WorkerCount {

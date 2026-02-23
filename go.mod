@@ -1,8 +1,6 @@
 module github.com/alexdempster44/phpunit-parallel
 
-go 1.24.2
-
-toolchain go1.24.12
+go 1.26.0
 
 require (
 	github.com/atotto/clipboard v0.1.4

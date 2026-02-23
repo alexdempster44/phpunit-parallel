@@ -168,6 +168,9 @@ func (t *TUIOutput) AwaitRetry() output.RetryAction {
 	if t.program != nil {
 		t.program.Wait()
 	}
+	t.mu.Lock()
+	t.stopped = true
+	t.mu.Unlock()
 	return output.ActionQuit
 }
 

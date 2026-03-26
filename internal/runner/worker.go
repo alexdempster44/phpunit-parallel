@@ -113,9 +113,9 @@ func (w *Worker) Run() error {
 
 	if err := cmd.Wait(); err != nil {
 		if stderr.Len() > 0 {
-			return fmt.Errorf("command failed: %w\nstderr: %s", err, stderr.String())
+			return fmt.Errorf("%w\nstderr: %s", err, stderr.String())
 		}
-		return fmt.Errorf("command failed: %w", err)
+		return err
 	}
 
 	return nil

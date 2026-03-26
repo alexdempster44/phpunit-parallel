@@ -2,6 +2,7 @@ package output
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 	"sync"
 )
@@ -160,18 +161,36 @@ func (t *TerminalOutput) Finish() {
 	totalFailed := 0
 	totalSkipped := 0
 	totalDeprecated := 0
+	failedWorkers := 0
 	for _, w := range t.workers {
 		totalTests += w.testsCompleted
 		totalFailed += w.testsFailed
 		totalSkipped += w.testsSkipped
 		totalDeprecated += w.testsDeprecated
+		if w.err != nil {
+			failedWorkers++
+		}
 	}
 
 	totalPassed := totalTests - totalFailed - totalSkipped
 	fmt.Printf("[summary] Total: %d tests, %d passed, %d failed, %d skipped, %d deprecated\n", totalTests, totalPassed, totalFailed, totalSkipped, totalDeprecated)
 
-	if totalFailed > 0 {
-		fmt.Println("[result] FAILED")
+	if totalFailed > 0 || failedWorkers > 0 {
+		if failedWorkers > 0 {
+			var workerIDs []int
+			for id := range t.workers {
+				if t.workers[id].err != nil {
+					workerIDs = append(workerIDs, id)
+				}
+			}
+			sort.Ints(workerIDs)
+			for _, id := range workerIDs {
+				fmt.Printf("[error] Worker %d: %s\n", id, t.workers[id].err)
+			}
+			fmt.Printf("[result] FAILED (%d workers failed)\n", failedWorkers)
+		} else {
+			fmt.Println("[result] FAILED")
+		}
 	} else {
 		fmt.Println("[result] OK")
 	}

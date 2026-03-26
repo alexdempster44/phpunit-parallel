@@ -3,19 +3,20 @@ package tui
 import "github.com/charmbracelet/lipgloss"
 
 type Styles struct {
-	Title       lipgloss.Style
-	TestPassed  lipgloss.Style
-	TestFailed  lipgloss.Style
-	TestRunning lipgloss.Style
-	TestSkipped lipgloss.Style
-	ErrorMsg    lipgloss.Style
-	ErrorDetail lipgloss.Style
-	HelpBar     lipgloss.Style
-	Cursor      lipgloss.Style
-	Panel       lipgloss.Style
-	ActivePanel lipgloss.Style
-	Dim         lipgloss.Style
-	Bold        lipgloss.Style
+	Title         lipgloss.Style
+	TestPassed    lipgloss.Style
+	TestFailed    lipgloss.Style
+	WorkerCrashed lipgloss.Style
+	TestRunning   lipgloss.Style
+	TestSkipped   lipgloss.Style
+	ErrorMsg      lipgloss.Style
+	ErrorDetail   lipgloss.Style
+	HelpBar       lipgloss.Style
+	Cursor        lipgloss.Style
+	Panel         lipgloss.Style
+	ActivePanel   lipgloss.Style
+	Dim           lipgloss.Style
+	Bold          lipgloss.Style
 
 	IconRunning string
 	IconExpand  string
@@ -30,6 +31,7 @@ func DefaultStyles() Styles {
 	dim := lipgloss.Color("8")
 	white := lipgloss.Color("15")
 	blue := lipgloss.Color("4")
+	brightRed := lipgloss.Color("9")
 
 	return Styles{
 		Title: lipgloss.NewStyle().
@@ -43,6 +45,10 @@ func DefaultStyles() Styles {
 
 		TestFailed: lipgloss.NewStyle().
 			Foreground(red),
+
+		WorkerCrashed: lipgloss.NewStyle().
+			Foreground(red).
+			Background(brightRed),
 
 		TestRunning: lipgloss.NewStyle().
 			Foreground(cyan),

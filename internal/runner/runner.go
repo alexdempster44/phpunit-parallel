@@ -1,11 +1,13 @@
 package runner
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
 	"os/signal"
 	"path/filepath"
+	"sort"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -85,6 +87,7 @@ func (r *Runner) Run() error {
 
 	retryAttempt := 0
 	allWorkers := make(map[int]*Worker)
+	var lastWorkerErrors map[int]error
 
 	for {
 		// Set workers to use tracked output so failure tracker sees all lines
@@ -97,6 +100,7 @@ func (r *Runner) Run() error {
 		currentWorkersMu.Unlock()
 
 		workerErrors := r.runWorkers(workers, tracked)
+		lastWorkerErrors = workerErrors
 
 		// Keep all workers open (don't run after-worker hooks yet)
 		for _, w := range workers {
@@ -120,14 +124,28 @@ func (r *Runner) Run() error {
 			// Rerun all workers without a filter
 			workers = r.createRetryWorkers(allWorkers, "", tracked)
 		} else {
-			// Retry only failed workers with a filter
-			failedWorkers := make(map[int]*Worker)
+			// Workers that crashed get all their files rerun (no filter)
+			crashedWorkers := make(map[int]*Worker)
+			// Workers with test failures get only the failed tests (with filter)
+			testFailedWorkers := make(map[int]*Worker)
 			for id, w := range allWorkers {
 				if workerErrors[id] != nil {
-					failedWorkers[id] = w
+					crashedWorkers[id] = w
 				}
 			}
-			workers = r.createRetryWorkers(failedWorkers, filter, tracked)
+
+			if filter != "" {
+				for id, w := range allWorkers {
+					if workerErrors[id] == nil {
+						testFailedWorkers[id] = w
+					}
+				}
+			}
+
+			workers = append(
+				r.createRetryWorkers(crashedWorkers, "", tracked),
+				r.createRetryWorkers(testFailedWorkers, filter, tracked)...,
+			)
 		}
 		if len(workers) == 0 {
 			break
@@ -164,6 +182,22 @@ func (r *Runner) Run() error {
 		if err := cmd.Run(); err != nil {
 			return fmt.Errorf("after command failed: %w", err)
 		}
+	}
+
+	// Collect worker errors in deterministic order
+	var workerIDs []int
+	for id := range lastWorkerErrors {
+		if lastWorkerErrors[id] != nil {
+			workerIDs = append(workerIDs, id)
+		}
+	}
+	if len(workerIDs) > 0 {
+		sort.Ints(workerIDs)
+		var errs []error
+		for _, id := range workerIDs {
+			errs = append(errs, fmt.Errorf("worker %d: %w", id, lastWorkerErrors[id]))
+		}
+		return errors.Join(errs...)
 	}
 
 	return nil

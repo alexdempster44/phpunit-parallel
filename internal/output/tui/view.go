@@ -106,7 +106,7 @@ func (m *Model) renderHeader() string {
 	case PhaseCleanup:
 		status = styles.TestRunning.Render(fmt.Sprintf("Cleaning up workers... %d/%d", m.cleanupCompleted, m.cleanupTotal))
 	case PhaseComplete, PhaseExploring:
-		if m.totalFailed > 0 {
+		if m.hasFailed() {
 			status = styles.TestFailed.Render("Complete - FAILED")
 		} else if m.retryAttempt > 0 {
 			status = styles.TestPassed.Render("Complete - PASSED (after retry)")
@@ -163,6 +163,9 @@ func (m *Model) renderOverallProgress() string {
 	if failed > 0 {
 		statsLine += styles.TestFailed.Render(fmt.Sprintf(" %d failed", failed))
 	}
+	if m.failedWorkers > 0 {
+		statsLine += styles.TestFailed.Render(fmt.Sprintf(" %d workers failed", m.failedWorkers))
+	}
 	if m.totalDeprecations > 0 {
 		statsLine += styles.TestSkipped.Render(fmt.Sprintf(" %d deprecated", m.totalDeprecations))
 	}
@@ -177,12 +180,19 @@ func (m *Model) renderOverallProgress() string {
 	}
 
 	barWidth := max(m.width-2, 20)
-	bar := m.buildProgressBar(completed, failed, total, barWidth, false)
+	crashedFraction := 0
+	if m.failedWorkers > 0 && m.workerCount > 0 {
+		crashedFraction = (m.failedWorkers * total) / m.workerCount
+		if crashedFraction == 0 {
+			crashedFraction = 1
+		}
+	}
+	bar := m.buildProgressBar(completed, failed, crashedFraction, total, barWidth, false)
 
 	return statsLine + etaLine + "\n" + bar
 }
 
-func (m *Model) buildProgressBar(completed, failed, total, width int, dimmed bool) string {
+func (m *Model) buildProgressBar(completed, failed, crashed, total, width int, dimmed bool) string {
 	if total == 0 {
 		if dimmed {
 			return styles.Dim.Render("[" + strings.Repeat("█", width) + "]")
@@ -190,9 +200,15 @@ func (m *Model) buildProgressBar(completed, failed, total, width int, dimmed boo
 		return styles.Dim.Render("[" + strings.Repeat("░", width) + "]")
 	}
 
-	filledWidth := (completed * width) / total
+	crashedWidth := (crashed * width) / total
+	if crashed > 0 && crashedWidth == 0 {
+		crashedWidth = 1
+	}
+
+	usableWidth := width - crashedWidth
+	filledWidth := (completed * usableWidth) / total
 	if completed >= total {
-		filledWidth = width
+		filledWidth = usableWidth
 	}
 
 	failedWidth := 0
@@ -203,18 +219,34 @@ func (m *Model) buildProgressBar(completed, failed, total, width int, dimmed boo
 		failedWidth = 1
 	}
 	passedWidth := filledWidth - failedWidth
-	remaining := width - filledWidth
+	remaining := max(usableWidth-filledWidth, 0)
 
 	if dimmed {
 		return styles.Dim.Render("["+strings.Repeat("█", passedWidth)) +
 			styles.TestFailed.Render(strings.Repeat("█", failedWidth)) +
-			styles.Dim.Render(strings.Repeat("░", remaining)+"]")
+			styles.Dim.Render(strings.Repeat("░", remaining)) +
+			styles.WorkerCrashed.Render(crashedBar(crashedWidth)) +
+			styles.Dim.Render("]")
 	}
 
 	return styles.Dim.Render("[") +
 		styles.TestPassed.Render(strings.Repeat("█", passedWidth)) +
 		styles.TestFailed.Render(strings.Repeat("█", failedWidth)) +
-		styles.Dim.Render(strings.Repeat("░", remaining)+"]")
+		styles.Dim.Render(strings.Repeat("░", remaining)) +
+		styles.WorkerCrashed.Render(crashedBar(crashedWidth)) +
+		styles.Dim.Render("]")
+}
+
+func crashedBar(width int) string {
+	b := make([]byte, 0, width*3)
+	for i := range width {
+		if i%2 == 0 {
+			b = append(b, "▀"...)
+		} else {
+			b = append(b, "▄"...)
+		}
+	}
+	return string(b)
 }
 
 func (m *Model) renderWorkersPanel(panelWidth int, panelHeight int) string {
@@ -224,16 +256,22 @@ func (m *Model) renderWorkersPanel(panelWidth int, panelHeight int) string {
 
 	barWidth := max(panelWidth-2, 10)
 
-	sortedWorkers := make([]int, 0, len(m.workerOrder))
+	var erroredWorkers []int
+	var activeWorkers []int
 	var finishedWorkers []int
 	for _, id := range m.workerOrder {
 		w := m.workers[id]
-		if w.HasTestCount && w.Completed >= w.Total {
+		if w.Error != nil {
+			erroredWorkers = append(erroredWorkers, id)
+		} else if w.HasTestCount && w.Completed >= w.Total {
 			finishedWorkers = append(finishedWorkers, id)
 		} else {
-			sortedWorkers = append(sortedWorkers, id)
+			activeWorkers = append(activeWorkers, id)
 		}
 	}
+	sortedWorkers := make([]int, 0, len(m.workerOrder))
+	sortedWorkers = append(sortedWorkers, erroredWorkers...)
+	sortedWorkers = append(sortedWorkers, activeWorkers...)
 	sortedWorkers = append(sortedWorkers, finishedWorkers...)
 
 	var workerLines []string
@@ -242,7 +280,14 @@ func (m *Model) renderWorkersPanel(panelWidth int, panelHeight int) string {
 		isComplete := w.HasTestCount && w.Completed >= w.Total
 
 		var statsLine string
-		if w.HasTestCount {
+		var workerBar string
+
+		if w.Error != nil {
+			statsLine = styles.TestFailed.Render(fmt.Sprintf("Worker %d: %s", id+1, w.Error))
+			workerBar = styles.Dim.Render("[") +
+				styles.WorkerCrashed.Render(crashedBar(barWidth)) +
+				styles.Dim.Render("]")
+		} else if w.HasTestCount {
 			percent := 100
 			if w.Total > 0 {
 				percent = (w.Completed * 100) / w.Total
@@ -255,20 +300,16 @@ func (m *Model) renderWorkersPanel(panelWidth int, panelHeight int) string {
 			if w.Failed > 0 {
 				statsLine += styles.TestFailed.Render(fmt.Sprintf(" %d failed", w.Failed))
 			}
+			workerBar = m.buildProgressBar(w.Completed, w.Failed, 0, w.Total, barWidth, isComplete)
 		} else {
 			statsLine = fmt.Sprintf("Worker %d: %d files", id+1, w.TestFiles)
 			if isComplete {
 				statsLine = styles.Dim.Render(statsLine)
 			}
+			workerBar = m.buildProgressBar(0, 0, 0, 0, barWidth, isComplete)
 		}
-		workerLines = append(workerLines, statsLine)
 
-		var workerBar string
-		if w.HasTestCount {
-			workerBar = m.buildProgressBar(w.Completed, w.Failed, w.Total, barWidth, isComplete)
-		} else {
-			workerBar = m.buildProgressBar(0, 0, 0, barWidth, isComplete)
-		}
+		workerLines = append(workerLines, statsLine)
 		workerLines = append(workerLines, workerBar)
 	}
 
@@ -317,7 +358,7 @@ func (m *Model) renderSummaryPanel(panelWidth int, _ int) string {
 	cumulativeTime := elapsed * time.Duration(m.workerCount)
 
 	var resultText string
-	if m.totalFailed > 0 {
+	if m.hasFailed() {
 		resultText = styles.TestFailed.Render("  FAILED  ")
 	} else {
 		resultText = styles.TestPassed.Render("  PASSED  ")
@@ -358,7 +399,16 @@ func (m *Model) renderSummaryPanel(panelWidth int, _ int) string {
 	lines = append(lines, formatRow("Deprecations:", fmt.Sprintf("%d", m.totalDeprecations), styles.TestSkipped))
 
 	lines = append(lines, "")
-	lines = append(lines, formatRow("Workers:", fmt.Sprintf("%d", m.workerCount), styles.Dim))
+	workerValue := fmt.Sprintf("%d", m.workerCount)
+	if m.failedWorkers > 0 {
+		plainLen := len(fmt.Sprintf("%d (%d failed)", m.workerCount, m.failedWorkers))
+		failedPart := styles.TestFailed.Render(fmt.Sprintf(" (%d failed)", m.failedWorkers))
+		styledValue := styles.Dim.Render(fmt.Sprintf("%d", m.workerCount)) + failedPart
+		spacing := max(panelWidth-len("Workers:")-plainLen, 1)
+		lines = append(lines, "Workers:"+strings.Repeat(" ", spacing)+styledValue)
+	} else {
+		lines = append(lines, formatRow("Workers:", workerValue, styles.Dim))
+	}
 	if m.retryAttempt > 0 {
 		lines = append(lines, formatRow("Retry:", fmt.Sprintf("#%d", m.retryAttempt), styles.Dim))
 	}

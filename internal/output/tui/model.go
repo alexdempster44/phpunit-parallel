@@ -35,6 +35,7 @@ type WorkerNode struct {
 	Failed       int
 	HasTestCount bool
 	TestFiles    int
+	Error        error
 }
 
 type ErrorEntry struct {
@@ -94,6 +95,7 @@ type Model struct {
 	totalFailed           int
 	totalSkipped          int
 	totalDeprecations     int
+	failedWorkers         int
 	copyNotice            string
 	cleanupCompleted      int
 	cleanupTotal          int
@@ -107,6 +109,10 @@ type Model struct {
 	copyModalCursor       int
 	copyModalErrors       bool
 	copyModalDeprecations bool
+}
+
+func (m *Model) hasFailed() bool {
+	return m.totalFailed > 0 || m.failedWorkers > 0
 }
 
 func NewModel(opts output.StartOptions, actionCh chan<- RetryAction) *Model {

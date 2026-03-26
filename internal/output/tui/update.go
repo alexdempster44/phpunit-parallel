@@ -105,6 +105,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.totalFailed = 0
 		m.totalSkipped = 0
 		m.totalDeprecations = 0
+		m.failedWorkers = 0
 		m.testCount = msg.TestCount
 		m.workerCount = msg.WorkerCount
 		m.hasTestCount = false
@@ -134,7 +135,7 @@ func (m *Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 	switch {
 	case key.Matches(msg, keys.Retry):
-		if m.phase == PhaseComplete && m.totalFailed > 0 && m.actionCh != nil {
+		if m.phase == PhaseComplete && m.hasFailed() && m.actionCh != nil {
 			m.actionCh <- output.ActionRetry
 			m.phase = PhaseRunning
 			return m, tick()
@@ -586,6 +587,11 @@ func (m *Model) handleWorkerComplete(msg WorkerCompleteMsg) {
 	w := m.workers[msg.WorkerID]
 	if w == nil {
 		return
+	}
+
+	if msg.Error != nil {
+		m.failedWorkers++
+		w.Error = msg.Error
 	}
 
 	if !w.HasTestCount {

@@ -63,7 +63,7 @@ func (w *Worker) Run() error {
 	if err != nil {
 		return fmt.Errorf("failed to build config: %w", err)
 	}
-	defer func() { _ = os.Remove(configPath) }()
+	defer func() { _ = os.Remove(filepath.Join(w.BaseDir, configPath)) }()
 
 	args := []string{"--configuration", configPath, "--teamcity", "--display-deprecations"}
 	if w.Filter != "" {
@@ -201,14 +201,18 @@ func (w *Worker) buildConfig() (string, error) {
 		})
 	}
 
-	if err := os.MkdirAll(w.ConfigBuildDir, 0755); err != nil {
+	configDir := filepath.Join(w.BaseDir, w.ConfigBuildDir)
+	if err := os.MkdirAll(configDir, 0755); err != nil {
 		return "", fmt.Errorf("failed to create config directory: %w", err)
 	}
 
-	configPath := filepath.Join(w.ConfigBuildDir, fmt.Sprintf("phpunit-worker-%d.xml", w.ID))
-	if err := os.WriteFile(configPath, []byte(configXML), 0644); err != nil {
+	configFile := fmt.Sprintf("phpunit-worker-%d.xml", w.ID)
+	absConfigPath := filepath.Join(configDir, configFile)
+	if err := os.WriteFile(absConfigPath, []byte(configXML), 0644); err != nil {
 		return "", fmt.Errorf("failed to write config: %w", err)
 	}
 
-	return configPath, nil
+	// Return path relative to BaseDir so it resolves correctly when the
+	// command runs with cmd.Dir = BaseDir (e.g. inside a Docker container).
+	return filepath.Join(w.ConfigBuildDir, configFile), nil
 }

@@ -99,7 +99,7 @@ func (r *Runner) Run() error {
 		currentWorkers = workers
 		currentWorkersMu.Unlock()
 
-		workerErrors := r.runWorkers(workers, tracked)
+		workerErrors := r.runWorkers(workers, tracked, tracker)
 		lastWorkerErrors = workerErrors
 
 		// Keep all workers open (don't run after-worker hooks yet)
@@ -124,21 +124,15 @@ func (r *Runner) Run() error {
 			// Rerun all workers without a filter
 			workers = r.createRetryWorkers(allWorkers, "", tracked)
 		} else {
-			// Workers that crashed get all their files rerun (no filter)
+			// Workers that crashed (exit code 2+) get all their files rerun (no filter)
 			crashedWorkers := make(map[int]*Worker)
-			// Workers with test failures get only the failed tests (with filter)
+			// Workers with test failures (exit code 1) get only the failed tests (with filter)
 			testFailedWorkers := make(map[int]*Worker)
 			for id, w := range allWorkers {
 				if workerErrors[id] != nil {
 					crashedWorkers[id] = w
-				}
-			}
-
-			if filter != "" {
-				for id, w := range allWorkers {
-					if workerErrors[id] == nil {
-						testFailedWorkers[id] = w
-					}
+				} else if filter != "" && tracker.HasWorkerFailures(id) {
+					testFailedWorkers[id] = w
 				}
 			}
 
@@ -185,6 +179,7 @@ func (r *Runner) Run() error {
 	}
 
 	// Collect worker errors in deterministic order
+	var errs []error
 	var workerIDs []int
 	for id := range lastWorkerErrors {
 		if lastWorkerErrors[id] != nil {
@@ -193,10 +188,16 @@ func (r *Runner) Run() error {
 	}
 	if len(workerIDs) > 0 {
 		sort.Ints(workerIDs)
-		var errs []error
 		for _, id := range workerIDs {
 			errs = append(errs, fmt.Errorf("worker %d: %w", id, lastWorkerErrors[id]))
 		}
+	}
+
+	if tracker.HasFailures() {
+		errs = append(errs, fmt.Errorf("some tests failed"))
+	}
+
+	if len(errs) > 0 {
 		return errors.Join(errs...)
 	}
 
@@ -204,7 +205,7 @@ func (r *Runner) Run() error {
 }
 
 // runWorkers launches all workers in parallel and returns a map of workerID -> error (nil if succeeded).
-func (r *Runner) runWorkers(workers []*Worker, out output.Output) map[int]error {
+func (r *Runner) runWorkers(workers []*Worker, out output.Output, tracker *FailureTracker) map[int]error {
 	workerErrors := make(map[int]error)
 	var mu sync.Mutex
 	var wg sync.WaitGroup
@@ -216,6 +217,11 @@ func (r *Runner) runWorkers(workers []*Worker, out output.Output) map[int]error 
 
 			out.WorkerStart(w.ID, w.TestCount())
 			err := w.Run()
+			// If the failure tracker captured test failures for this worker,
+			// the non-zero exit is from PHPUnit reporting failures, not a crash.
+			if err != nil && tracker.HasWorkerFailures(w.ID) {
+				err = nil
+			}
 			out.WorkerComplete(w.ID, err)
 
 			mu.Lock()

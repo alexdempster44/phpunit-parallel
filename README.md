@@ -170,6 +170,19 @@ Run each worker in its own Docker container:
 
 The `{}` placeholder in `run-worker` is replaced with the generated PHPUnit arguments (configuration path, flags, filters, etc.).
 
+### Docker Compose Example
+
+For projects using Docker Compose, use a unique project name per worker to isolate containers. Include `--rmi local` in the `after-worker` hook to remove locally-built images — without it, each run leaves behind orphaned images that accumulate over time:
+
+```xml
+<runner>
+    <workers>4</workers>
+    <before>docker compose -f docker-compose.yml -f docker-compose.testing.yml build testing</before>
+    <run-worker>docker compose -f docker-compose.yml -f docker-compose.testing.yml -p $PROJECT-test-$RUNNER_PID-$WORKER_ID run --rm testing php vendor/bin/phpunit {}</run-worker>
+    <after-worker>docker compose -f docker-compose.yml -f docker-compose.testing.yml -p $PROJECT-test-$RUNNER_PID-$WORKER_ID down -v --remove-orphans --rmi local</after-worker>
+</runner>
+```
+
 ## Output Modes
 
 | Mode                | When                    | Description                                                 |

@@ -12,19 +12,21 @@ import (
 // FailureTracker intercepts WorkerLine calls to track failed test names
 // from TeamCity protocol output.
 type FailureTracker struct {
-	mu          sync.Mutex
-	failedTests map[string]bool
+	mu            sync.Mutex
+	failedTests   map[string]bool
+	failedWorkers map[int]bool
 }
 
 func NewFailureTracker() *FailureTracker {
 	return &FailureTracker{
-		failedTests: make(map[string]bool),
+		failedTests:   make(map[string]bool),
+		failedWorkers: make(map[int]bool),
 	}
 }
 
 // ProcessLine parses a worker output line looking for testFailed messages.
 // It extracts the test name and strips data set suffixes.
-func (ft *FailureTracker) ProcessLine(line string) {
+func (ft *FailureTracker) ProcessLine(workerID int, line string) {
 	if !strings.HasPrefix(line, "##teamcity[testFailed ") {
 		return
 	}
@@ -41,7 +43,22 @@ func (ft *FailureTracker) ProcessLine(line string) {
 
 	ft.mu.Lock()
 	ft.failedTests[name] = true
+	ft.failedWorkers[workerID] = true
 	ft.mu.Unlock()
+}
+
+// HasWorkerFailures returns true if the given worker had any test failures.
+func (ft *FailureTracker) HasWorkerFailures(workerID int) bool {
+	ft.mu.Lock()
+	defer ft.mu.Unlock()
+	return ft.failedWorkers[workerID]
+}
+
+// HasFailures returns true if any test failures were tracked.
+func (ft *FailureTracker) HasFailures() bool {
+	ft.mu.Lock()
+	defer ft.mu.Unlock()
+	return len(ft.failedTests) > 0
 }
 
 // Reset clears all tracked failures.
@@ -49,6 +66,7 @@ func (ft *FailureTracker) Reset() {
 	ft.mu.Lock()
 	defer ft.mu.Unlock()
 	ft.failedTests = make(map[string]bool)
+	ft.failedWorkers = make(map[int]bool)
 }
 
 // BuildFilter creates a PHPUnit --filter regex from the failed test names.
@@ -87,6 +105,6 @@ type trackedOutput struct {
 }
 
 func (t *trackedOutput) WorkerLine(workerID int, line string) {
-	t.tracker.ProcessLine(line)
+	t.tracker.ProcessLine(workerID, line)
 	t.Output.WorkerLine(workerID, line)
 }

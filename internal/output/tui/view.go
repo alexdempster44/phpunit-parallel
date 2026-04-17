@@ -609,18 +609,55 @@ func (m *Model) renderErrorsPanel(height int, panelWidth int) string {
 
 func (m *Model) renderHelpBar() string {
 	if m.copyNotice != "" {
-		return styles.TestPassed.Render(m.copyNotice)
+		return padToWidth(styles.TestPassed.Render(m.copyNotice), m.width)
 	}
 
-	var help string
+	var segments []string
 	if m.phase == PhaseRunning {
-		help = "[Tab] Panel  [↑↓] Navigate  [←→] Expand  [c] Copy  [C] Copy all  [Ctrl+C] Quit"
+		segments = []string{"[Tab] Panel", "[↑↓] Navigate", "[←→] Expand", "[c] Copy", "[C] Copy all", "[Ctrl+C] Quit"}
 	} else if m.phase == PhaseComplete && m.totalFailed > 0 {
-		help = "[Tab] Panel  [↑↓] Navigate  [←→] Expand  [c] Copy  [C] Copy all  [r] Rerun failed  [a] Rerun all  [q] Quit"
+		segments = []string{"[Tab] Panel", "[↑↓] Navigate", "[←→] Expand", "[c] Copy", "[C] Copy all", "[r] Rerun failed", "[a] Rerun all", "[q] Quit"}
 	} else {
-		help = "[Tab] Panel  [↑↓] Navigate  [←→] Expand  [c] Copy  [C] Copy all  [a] Rerun all  [q] Quit"
+		segments = []string{"[Tab] Panel", "[↑↓] Navigate", "[←→] Expand", "[c] Copy", "[C] Copy all", "[a] Rerun all", "[q] Quit"}
 	}
-	return styles.HelpBar.Render(help)
+
+	help := fitSegments(segments, m.width)
+	return padToWidth(styles.HelpBar.Render(help), m.width)
+}
+
+// fitSegments joins help segments separated by two spaces, dropping segments
+// from the right until the line fits within width.
+func fitSegments(segments []string, width int) string {
+	if width <= 0 {
+		return ""
+	}
+	for n := len(segments); n > 0; n-- {
+		joined := strings.Join(segments[:n], "  ")
+		if visibleLength(joined) <= width {
+			return joined
+		}
+	}
+	first := segments[0]
+	if visibleLength(first) <= width {
+		return first
+	}
+	runes := []rune(first)
+	if width >= len(runes) {
+		return first
+	}
+	return string(runes[:width])
+}
+
+// padToWidth pads a styled string with trailing spaces so the visible width
+// matches the target. This prevents leftover characters from a prior, longer
+// render from leaking through bubbletea's diff-based renderer (e.g. when the
+// help bar is replaced by a shorter copy notice).
+func padToWidth(s string, width int) string {
+	visible := visibleLength(s)
+	if visible >= width {
+		return s
+	}
+	return s + strings.Repeat(" ", width-visible)
 }
 
 func (m *Model) renderCopyModal() string {

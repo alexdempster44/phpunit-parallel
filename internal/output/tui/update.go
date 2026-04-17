@@ -26,7 +26,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
-		return m, nil
+		return m, tea.ClearScreen
 
 	case TickMsg:
 		if m.phase == PhaseRunning || m.phase == PhaseCleanup {
@@ -85,7 +85,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.endTime = time.Now()
 		}
 		m.activePanel = PanelErrors
-		return m, nil
+		return m, tea.ClearScreen
 
 	case RetryStartMsg:
 		m.retryAttempt = msg.Attempt
@@ -167,7 +167,7 @@ func (m *Model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		case PanelErrors:
 			m.activePanel = PanelWorkers
 		}
-		return m, nil
+		return m, tea.ClearScreen
 
 	case key.Matches(msg, keys.Up):
 		m.moveCursor(-1)

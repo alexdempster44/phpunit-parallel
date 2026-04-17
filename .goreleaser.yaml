@@ -40,7 +40,7 @@ homebrew_casks:
     directory: Casks
     homepage: "https://github.com/alexdempster44/phpunit-parallel"
     description: "A CLI tool to run PHPUnit tests in parallel, with a beautiful terminal UI"
-    license: "MIT"
+    license: "Unlicense"
 
 changelog:
   sort: asc

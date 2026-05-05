@@ -150,7 +150,7 @@ func init() {
 	rootCmd.Flags().StringVar(&runnerConfig.TestSuffix, "test-suffix", runnerConfig.TestSuffix, "Suffix for test files")
 	rootCmd.Flags().StringVar(&runnerConfig.Group, "group", "", "Only run tests from the specified group(s)")
 	rootCmd.Flags().StringVar(&runnerConfig.ExcludeGroup, "exclude-group", "", "Exclude tests from the specified group(s)")
-	rootCmd.Flags().StringVar(&shardFlag, "shard", "", "Run only this shard's slice of tests, in the format X/N (e.g. 2/4). Combine with a CI matrix to fan tests across runners.")
+	rootCmd.Flags().StringVar(&shardFlag, "shard", "", "Run only this shard's slice of tests, in the format X/N (e.g. 2/4)")
 }
 
 func parseShard(s string) (int, int, error) {

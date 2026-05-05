@@ -41,6 +41,10 @@ func (r *Runner) Run() error {
 		return fmt.Errorf("failed to discover tests: %w", err)
 	}
 
+	if r.RunnerConfig.ShardTotal > 1 {
+		tests = distributor.Shard(tests, r.RunnerConfig.ShardIndex, r.RunnerConfig.ShardTotal)
+	}
+
 	dist := distributor.RoundRobin(tests, r.RunnerConfig.Workers)
 	workers := r.createWorkers(dist)
 	workerCount := len(workers)

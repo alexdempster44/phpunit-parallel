@@ -20,6 +20,8 @@ type Runner struct {
 	Filter         string   `xml:"-"` // CLI-only, not in XML config
 	Group          string   `xml:"-"` // CLI-only, not in XML config
 	ExcludeGroup   string   `xml:"-"` // CLI-only, not in XML config
+	ShardIndex     int      `xml:"-"` // CLI-only: 1-indexed shard number, 0 = no sharding
+	ShardTotal     int      `xml:"-"` // CLI-only: total number of shards, 0 = no sharding
 }
 
 func DefaultRunner() *Runner {

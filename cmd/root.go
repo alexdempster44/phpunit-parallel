@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 
 	"github.com/alexdempster44/phpunit-parallel/internal/config"
 	"github.com/alexdempster44/phpunit-parallel/internal/output"
@@ -20,6 +21,7 @@ var (
 	configFile       string
 	runnerConfigFile string
 	teamcity         bool
+	shardFlag        string
 	runnerConfig     = config.DefaultRunner()
 	versionInfo      string
 )
@@ -85,6 +87,14 @@ var rootCmd = &cobra.Command{
 		if cmd.Flags().Changed("exclude-group") {
 			runnerConfig.ExcludeGroup, _ = cmd.Flags().GetString("exclude-group")
 		}
+		if cmd.Flags().Changed("shard") {
+			idx, total, err := parseShard(shardFlag)
+			if err != nil {
+				return fmt.Errorf("invalid --shard value: %w", err)
+			}
+			runnerConfig.ShardIndex = idx
+			runnerConfig.ShardTotal = total
+		}
 
 		return nil
 	},
@@ -140,6 +150,29 @@ func init() {
 	rootCmd.Flags().StringVar(&runnerConfig.TestSuffix, "test-suffix", runnerConfig.TestSuffix, "Suffix for test files")
 	rootCmd.Flags().StringVar(&runnerConfig.Group, "group", "", "Only run tests from the specified group(s)")
 	rootCmd.Flags().StringVar(&runnerConfig.ExcludeGroup, "exclude-group", "", "Exclude tests from the specified group(s)")
+	rootCmd.Flags().StringVar(&shardFlag, "shard", "", "Run only this shard's slice of tests, in the format X/N (e.g. 2/4). Combine with a CI matrix to fan tests across runners.")
+}
+
+func parseShard(s string) (int, int, error) {
+	parts := strings.SplitN(s, "/", 2)
+	if len(parts) != 2 {
+		return 0, 0, fmt.Errorf("expected format X/N, got %q", s)
+	}
+	idx, err := strconv.Atoi(strings.TrimSpace(parts[0]))
+	if err != nil {
+		return 0, 0, fmt.Errorf("invalid shard index: %w", err)
+	}
+	total, err := strconv.Atoi(strings.TrimSpace(parts[1]))
+	if err != nil {
+		return 0, 0, fmt.Errorf("invalid shard total: %w", err)
+	}
+	if total < 1 {
+		return 0, 0, fmt.Errorf("shard total must be >= 1, got %d", total)
+	}
+	if idx < 1 || idx > total {
+		return 0, 0, fmt.Errorf("shard index %d out of range [1..%d]", idx, total)
+	}
+	return idx, total, nil
 }
 
 func SetVersionInfo(version string) {

@@ -53,3 +53,19 @@ func (d Distribution) GetWorkerTests(workerID int) []TestFile {
 	}
 	return d.Workers[workerID].Tests
 }
+
+// Shard returns the slice of tests assigned to shardIndex (1-indexed) of shardTotal.
+// File i goes to shard (i % shardTotal) + 1, so the combination of all shards covers every
+// test exactly once with no overlap. Caller must pass tests in a stable order.
+func Shard(tests []TestFile, shardIndex, shardTotal int) []TestFile {
+	if shardTotal <= 1 {
+		return tests
+	}
+	sliced := make([]TestFile, 0, len(tests)/shardTotal+1)
+	for i, t := range tests {
+		if i%shardTotal == shardIndex-1 {
+			sliced = append(sliced, t)
+		}
+	}
+	return sliced
+}

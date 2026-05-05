@@ -42,7 +42,6 @@ func (r *Runner) Run() error {
 	}
 
 	if r.RunnerConfig.ShardTotal > 1 {
-		sort.Slice(tests, func(i, j int) bool { return tests[i].Path < tests[j].Path })
 		tests = distributor.Shard(tests, r.RunnerConfig.ShardIndex, r.RunnerConfig.ShardTotal)
 	}
 
